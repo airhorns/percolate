@@ -1,0 +1,29 @@
+{
+  "author": "Harry Brundage <harry.brundage@jadedpixel.com> (http://harry.me/)",
+  "name": "percolate",
+  "description": "Smart API documentation for CoffeeScript projects",
+  "version": "0.1.0",
+  "homepage": "http://github.com/shopify/percolate",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:hornairs/percolate.git"
+  },
+  "main": "Percolate",
+  "scripts": {
+    "test": "cake test"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "muffin": "~>0.1.4",
+    "coffee-script": "~>1.1.1",
+    "glob": ">0.0.1",
+    "markdown": "~>0.2.1",
+    "highlight.js": ">=0.0.1"
+  },
+  "devDependencies": {
+    "nodeunit": ">0.0.1",
+    "batman": ">0.0.1"
+  }
+}
