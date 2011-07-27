@@ -54,3 +54,18 @@ Percolate.document 'Batman', ->
         @equal 'qux', -> @obj.get 'baz'
 
         @explain 'This is because `@obj` has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using `get` and `set` to retrieve or set properties on `Batman.Object`s. This is a departure from the usual way of doing things, and it takes more code, but it\'s the only way that the rest of the goodness Batman provides can be implemented.'
+      
+    @function 'observe', ->
+      @params
+        'key': String
+        'observer': 'function(newValue, oldValue)'
+      
+      @description '`observe` adds a change listener to a `Batman.Object`, which then gets called any time the `key` changes. This is the heart of the binding system `Batman` uses in its views because it allows views to be notified when the data they represet changes, and thus update themselves.'
+      
+      @setup -> @obj = new Batman.Object
+
+      @example 'observe a key for a change', ->
+        @show -> @render = (value) -> @called = true
+        @show -> @obj.observe('foo', (oldValue, newValue) ->)
+        @show -> @obj.set('foo', 'bar')
+        @equal true, -> @render.called

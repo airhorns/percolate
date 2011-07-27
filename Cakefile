@@ -1,5 +1,6 @@
 muffin = require 'muffin'
 glob = require 'glob'
+{exec} = require 'child_process'
 
 option '-w', '--watch', 'continue to watch the files and rebuild them when they change'
 option '-c', '--commit', 'operate on the git index instead of the working tree'
@@ -26,6 +27,23 @@ task 'test', 'compile shopify.js and the tests and run them on the command line'
     after: ->
       tests = glob.globSync('./test/*_test.coffee')
       runner.run tests
+
+task 'dev', 'compile the examples/simple.html file when anything changes', (options) ->
+  muffin.run
+    files: ['./src/**/*.coffee', './templates/**/*', './examples/**/*']
+    options: options
+    map:
+     'src/percolate.coffee'    : (matches) -> muffin.compileScript(matches[0], 'lib/percolate.js', options)
+     'src/(.+).coffee'         : (matches) -> 
+     'examples/simple.coffee'  : (matches) -> 
+     'templates/(.+)'          : (matches) -> 
+    after: ->
+      console.log "Running examples/simple.coffee ..."
+      exec 'coffee examples/simple.coffee', (stdout, stderr) ->
+        for stream in arguments 
+          if stream
+            stream = stream.toString()
+            console.log stream if stream.length > 0
 
 task 'stats', 'print source code stats', (options) ->
   muffin.statFiles(glob.globSync('./src/**/*').concat(glob.globSync('./lib/**/*')), options)

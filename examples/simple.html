@@ -16,6 +16,7 @@
   <!-- Mobile viewport optimized: j.mp/bplateviewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href='http://fonts.googleapis.com/css?family=Inconsolata|Rosario&v2' rel='stylesheet' type='text/css'>
+
   <style type="text/css">
     /**
      * HTML5 ✰ Boilerplate
@@ -153,7 +154,7 @@
        code.flickr.com/blog/2008/11/12/on-ui-quality-the-little-things-client-side-image-resizing/ */
     .ie7 img { -ms-interpolation-mode: bicubic; }
 
-    body, select, input, textarea {
+    html, body, select, input, textarea {
       /* #444 looks better than black: twitter.com/H_FJ/statuses/11800719859 */
       color: #444;
       /* Set your base font here, to apply evenly */
@@ -169,6 +170,40 @@
    
     a, a:active, a:visited { color: #607890; }
     a:hover { color: #036; }
+    
+    #sidebar {
+      width: 240px;
+      float: left;
+    }
+
+    #sidebar form {
+      margin-bottom: 5px;
+    }
+
+    #sidebar input[type="search"] {
+      display: block;
+      width: 90%;
+      margin: 0 auto;
+    }
+
+    #main {
+      position: relative;
+      margin-left: 240px;
+      min-width: 500px;
+      padding: 0px 10px;
+    }
+
+    ul.object_list {
+      margin-left: 10px;
+    }
+
+    ul.object_list li {
+    	list-style: none;
+    }
+
+    ul.object_list li:nth-child(2n) {
+    	background-color: #F5F5FF;
+    }
 
     /* For image replacement */
     .ir { display: block; text-indent: -999em; overflow: hidden; background-repeat: no-repeat; text-align: left; direction: ltr; }
@@ -365,94 +400,120 @@
     <header>
       <h1>Percolate Generated Documentation</h1>
     </header>
+    <div id="sidebar">
+      <form>
+        <input type="search" placeholder="Enter a function or keyword..."/>
+      </form>
+      <ul class="object_list">
+      
+        
+          <li>Batman.Object.get()</li>
+        
+          <li>Batman.Object.set()</li>
+        
+      
+        
+          <li>Batman.Object.prototype.get(key)</li>
+        
+          <li>Batman.Object.prototype.set(key,value)</li>
+        
+          <li>Batman.Object.prototype.observe(key,observer)</li>
+        
+      
+      </ul>
+    </div>
     <div id="main" role="main">
-      <h1>Batman</h1>
+      <h1 class="base">Batman</h1>
 
-<h2>Batman.Object</h2>
+<h2 class="object">Batman.Object</h2>
 
-<h3>get</h3>
+<h3 class="function">get</h3>
 
 <p><em>see Batman.Object.prototype.get</em></p>
 
-<h3>set</h3>
+<h3 class="function">set</h3>
 
 <p><em>see Batman.Object.prototype.set</em></p>
 
-<h2>Batman.Object.prototype</h2>
+<h2 class="object">Batman.Object.prototype</h2>
 
-<h3>get</h3>
+<h3 class="function">get</h3>
 
 <p><code>get</code> retrieves any property from any <code>Batman.Object</code>. Instead of doing normal property lookups like you would in normal Javascript, you <em>must</em> use <code>get</code> to retrieve anything from a Batman object. </p>
 
 <h4>get a simple key</h4>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)
-bar
-</code>
-</pre>
+<p>js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)<br />bar</p>
 
 <h4>get a key on a smart object</h4>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj.get(<span class="string">'baz'</span>)
-<span class="literal">true</span>
-</code>
-</pre>
+<p>js> <span class="keyword">this</span>.obj.get(<span class="string">'baz'</span>)<br /><span class="literal">true</span></p>
 
 <p>Note that while the above works, doing a vanilla JavaScript key access will not! </p>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj[<span class="string">'baz'</span>]
+<pre><code>js> <span class="keyword">this</span>.obj[<span class="string">'baz'</span>]
 undefined
 js> <span class="keyword">this</span>.obj.baz
 undefined
-</code>
-</pre>
+</code></pre>
 
 <p>This is because <code>@obj</code> has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using <code>get</code> and <code>set</code> to retrieve or set properties on <code>Batman.Object</code>s. This is a departure from the usual way of doing things, and it takes more code, but it's the only way that the rest of the goodness Batman provides can be implemented. </p>
 
-<h3>set</h3>
+<h3 class="function">set</h3>
 
 <p><code>set</code> stores a value in a property on any <code>Batman.Object</code>. Instead of doing normal sets like you would in normal Javascript, you <em>must</em> use <code>set</code> to retrieve anything from a Batman object. </p>
 
 <h4>set a simple key</h4>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj.set(<span class="string">'foo'</span>, <span class="string">'bar'</span>)
+<pre><code>js> <span class="keyword">this</span>.obj.set(<span class="string">'foo'</span>, <span class="string">'bar'</span>)
 bar
 js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)
 bar
-</code>
-</pre>
+</code></pre>
 
 <h4>set a key on a smart object</h4>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj.set(<span class="string">'baz'</span>, <span class="string">'qux'</span>)
-qux
-</code>
-</pre>
+<p>js> <span class="keyword">this</span>.obj.set(<span class="string">'baz'</span>, <span class="string">'qux'</span>)<br />qux</p>
 
 <p>Note that while the above works, doing a vanilla JavaScript key access will not! </p>
 
-<pre>
-  <code>js> <span class="keyword">this</span>.obj[<span class="string">'baz'</span>]
+<pre><code>js> <span class="keyword">this</span>.obj[<span class="string">'baz'</span>]
 undefined
 js> <span class="keyword">this</span>.obj.baz
 undefined
 js> <span class="keyword">this</span>.obj.get(<span class="string">'baz'</span>)
 undefined
-</code>
-</pre>
+</code></pre>
 
 <p>This is because <code>@obj</code> has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using <code>get</code> and <code>set</code> to retrieve or set properties on <code>Batman.Object</code>s. This is a departure from the usual way of doing things, and it takes more code, but it's the only way that the rest of the goodness Batman provides can be implemented. </p>
+
+<h3 class="function">observe</h3>
+
+<p><code>observe</code> adds a change listener to a <code>Batman.Object</code>, which then gets called any time the <code>key</code> changes. This is the heart of the binding system <code>Batman</code> uses in its views because it allows views to be notified when the data they represet changes, and thus update themselves. </p>
+
+<h4>observe a key for a change</h4>
+
+<pre><code>js> <span class="keyword">this</span>.called = <span class="literal">true</span>; }
+<span class="function"><span class="keyword">function</span> <span class="params">(value)</span> {</span>
+              <span class="keyword">return</span> <span class="keyword">this</span>.called = <span class="literal">true</span>;
+            }
+js> <span class="keyword">this</span>.obj.observe(<span class="string">'foo'</span>, <span class="function"><span class="keyword">function</span><span class="params">(oldValue, newValue)</span> {</span>})
+[object Object]
+js> <span class="keyword">this</span>.obj.set(<span class="string">'foo'</span>, <span class="string">'bar'</span>)
+bar
+js> <span class="keyword">this</span>.render.called
+undefined
+</code></pre>
     </div>
     <footer>
-
     </footer>
   </div> <!--! end of #container -->
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+    });
+  </script>
 </body>
 </html>

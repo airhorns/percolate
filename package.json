@@ -20,7 +20,8 @@
     "coffee-script": "~>1.1.1",
     "glob": ">0.0.1",
     "markdown": "~>0.2.1",
-    "highlight.js": ">=0.0.1"
+    "highlight.js": ">=0.0.1",
+    "eco": ">=1.1.0-rc1"
   },
   "devDependencies": {
     "nodeunit": ">0.0.1",

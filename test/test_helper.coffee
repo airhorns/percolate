@@ -14,5 +14,8 @@ module.exports =
   getTestCase: (block) ->
     node = new Percolate.TestCaseNode false, 'test case', block
 
+  getBaseCase: (block) ->
+    node = new Percolate.BaseNode 'test case', block
+
   runTestCase: (node) ->
     (new TestWalker).walk(node)

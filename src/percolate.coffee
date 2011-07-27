@@ -3,6 +3,7 @@ path = require 'path'
 {markdown} = require 'markdown'
 hljs = require 'highlight.js'
 ghm = require "github-flavored-markdown"
+eco = require "eco"
 
 Highlight = (str) ->
   hljs.highlight('javascript', str).value
@@ -28,21 +29,27 @@ class ReferenceNode extends LeafNode
   constructor: (@parent, @context, @node) ->
     super
 
-class AssertionNode extends LeafNode
-  constructor: (@parent, @actualFunction, @assertion) ->
+class ConsoleNode extends LeafNode
+  outputValue: ->
+    unless @output?
+      context = {}
+      setup.call(context) for setup in @parent.setups()
+      @output = @inputFunction.call(context)
+    @output
+
+class AssertionNode extends ConsoleNode
+  constructor: (@parent, @inputFunction, @assertion) ->
     super
 
   success: ->
-    return @assertion.call(@, @actualValue())
+    return @assertion.call(@, @outputValue())
   
-  actualValue: ->
-    unless @actual?
-      context = {}
-      setup.call(context) for setup in @parent.setups()
-      @actual = @actualFunction.call(context)
-    @actual
+class ShowNode extends ConsoleNode
+  constructor: (@parent, @inputFunction) ->
+    @parent.setup @inputFunction
+    super
 
-class MultiAssertionNode extends Node
+class MultiConsoleNode extends Node
 
 class TestContainerNode extends Node
   constructor: (@parent) ->
@@ -57,7 +64,8 @@ class TestContainerNode extends Node
 
   setup: (f) ->
     @setupFunctions.push f
-  
+  show: () ->
+    @children.push new ShowNode(@, arguments...)
   example: () ->
     @children.push new ExampleTestCaseNode(@, arguments...)
   test: () ->
@@ -93,6 +101,8 @@ class DocumentationNode extends TestContainerNode
     super
   function: () -> 
     @children.push new FunctionDocumentationNode(@, arguments...)
+  document: () ->
+    @children.push new DocumentationNode(@, arguments...)
 
 class FunctionDocumentationNode extends DocumentationNode
   constructor: (@parent, @key, blockFunction) ->
@@ -112,10 +122,24 @@ class FunctionDocumentationNode extends DocumentationNode
   description: (text) ->
     @children.push new TextNode(@, text)
 
+  signature: ->
+    "#{@parentName()}.#{@key}(#{@paramsList()})"
+  
+  parentName: ->
+    current = @
+    while (next = current.parent) && next != current
+      return next.name if next.name?
+      current = next
+
+    return "global"
+
+  paramsList: ->
+    list = [k for k, v of @paramTypes]
+    list.join(', ')
+
 class BaseNode extends Node
   constructor: (@name, blockFunction) ->
     super
-
   title: (@name) ->
   document: () ->
     @children.push new DocumentationNode(@, arguments...)
@@ -138,7 +162,7 @@ class TestRunnerWalker extends Walker
     else
       true
 
-class MultiAssertionTransformation extends Walker
+class MultiConsoleTransformation extends Walker
   walk: (root) ->
     if root.children?
       # Do lower nodes first so the root's children are stable.
@@ -148,16 +172,16 @@ class MultiAssertionTransformation extends Walker
     true
 
   splice: (node, start, count) ->
-    multi = new MultiAssertionNode(node.parent)
+    multi = new MultiConsoleNode(node.parent)
     multi.children = node.children.splice(start, count, multi)
     multi
   
   replace: (root) ->
     start = 0
     count = 0
-    # Buffer all the assertion nodes into one MultiAssertionNode
+    # Buffer all the assertion nodes into one MultiConsoleNode
     for node, index in root.children
-      if node instanceof AssertionNode
+      if node instanceof ConsoleNode
         start = index if count == 0
         count += 1
       else if count == 1
@@ -189,19 +213,23 @@ class MarkdownOutputWalker extends TransformingWalker
   return_val_rx = /function \((?:.*)\) \{(?:.*)\s*return (.*);\s*\}/m
   whitespace_rx = /\s+/g
   
-  transformations: [new MultiAssertionTransformation]
-  constructor: () ->
-    @output = []
+  transformations: [new MultiConsoleTransformation]
   
   visit: (node) ->
     if node.rendered
       # Something else has already rendered this node.
       return true
     else
-      # Get the name of the render function and then call it (or error if it doesn't exist
-      renderer = "render#{node.constructor.name}"
-      unless @[renderer]?
-        throw new Error("Unrecognized Percolate node #{node.constructor.name}!") 
+      # Get the name of the render function and then call it (or error if it doesn't exist)
+      current = node
+      loop
+        renderer = "render#{current.constructor.name}"
+        if @[renderer]?
+          break
+        else
+          current = node.constructor.__super__
+          if not current?
+            throw new Error("Unrecognized Percolate node #{node.constructor.name}!") 
 
       # Call the render function
       @output.push @[renderer](node)
@@ -216,13 +244,13 @@ class MarkdownOutputWalker extends TransformingWalker
   renderAssertionNode: (node) ->
     """
      
-    #{@renderAssertionConsole(node)}
+    #{@renderConsole(node)}
     
     """
-  renderMultiAssertionNode: (multi) -> 
+  renderMultiConsoleNode: (multi) -> 
     out = for node in multi.children
       node.rendered = true
-      @renderAssertionConsole(node)
+      @renderConsole(node)
     """
     
     #{out.join('')}
@@ -239,43 +267,55 @@ class MarkdownOutputWalker extends TransformingWalker
   renderAssertionConsole: (node) -> 
     "    js> #{Highlight(@renderFunction(node.actualFunction))}\n    #{Highlight(node.actualValue())}\n"
 
-  render: (test) ->
-    @walk(test)
+  render: (node) ->
+    @output = []
+    @walk(node)
     @output.join('')
 
 class HTMLOutputWalker extends MarkdownOutputWalker
+  OutputTemplate = fs.readFileSync(path.join(__dirname, '..', 'templates', 'index.html.eco')).toString()
+
   constructor: ->
+    @objects = {}
     super
-    @objects = []
+  
+  visit: (node) ->
+    switch node.constructor.name
+      when 'FunctionDocumentationNode'
+        keys = (@objects[node.parentName()] ||= [])
+        keys.push node
+    super
 
-  template: () ->
-    fs.readFileSync(path.join(__dirname, '..', 'templates', 'index.html.tpl')).toString()
- 
-  renderAssertionNode: (node) ->
-    @wrapConsole @renderAssertionConsole(node)
+  renderBaseNode: (node) -> @wrapHTML "<h1 class=\"base\">#{node.name}</h1>"
+  renderDocumentationNode: (node) -> @wrapHTML "<h2 class=\"object\">#{node.name}</h2>"
+  renderFunctionDocumentationNode: (node) ->  @wrapHTML "<h3 class=\"function\">#{node.name}</h3>"
 
-  renderMultiAssertionNode: (multi) -> 
+  renderConsoleNode: (node) ->
+    @wrapConsole @renderConsole(node)
+
+  renderMultiConsoleNode: (multi) -> 
     out = for node in multi.children
       node.rendered = true
-      @renderAssertionConsole(node)
+      @renderConsole(node)
     @wrapConsole out.join('')
  
-  renderAssertionConsole: (node) -> 
-    "js> #{Highlight(@renderFunction(node.actualFunction))}\n#{Highlight('' + node.actualValue())}\n"
+  renderConsole: (node) -> 
+    "js> #{Highlight(@renderFunction(node.inputFunction))}\n#{Highlight('' + node.outputValue())}\n"
 
-  wrapConsole: (str) ->
+  wrapConsole: (str) -> @wrapHTML "<pre><code>#{str}</code></pre>"
+  wrapHTML: (str) ->
     """
 
-    <pre>
-      <code>#{str}</code>
-    </pre>
-
+    #{str}
+    
     """
-
-  render: (test) ->
-    output = super
-    html = ghm.parse(output)
-    @template().replace("%body%", html)
+  render: (node) ->
+    markdownishOutput = super
+    data = 
+      title: node.name
+      body: ghm.parse(markdownishOutput)
+      objects: @objects 
+    eco.render OutputTemplate, data
   
   renderToFile: (test, filename) ->
     fs.writeFileSync(filename, @render(test))
@@ -284,5 +324,6 @@ Document = (name, block) ->
   node = new BaseNode(name, block)
   markdownRenderer = new HTMLOutputWalker
   markdownRenderer.renderToFile(node, './examples/simple.html')
+  true
 
-module.exports = {Node, LeafNode, TextNode, AssertionNode, ExampleTestCaseNode, TestCaseNode, DocumentationNode, Walker, MultiAssertionTransformation, TestRunnerWalker, MarkdownOutputWalker, HTMLOutputWalker, document: Document}
+module.exports = {Node, LeafNode, TextNode, AssertionNode, ExampleTestCaseNode, TestCaseNode, DocumentationNode, FunctionDocumentationNode, BaseNode, Walker, MultiConsoleTransformation, TestRunnerWalker, MarkdownOutputWalker, HTMLOutputWalker, document: Document}
