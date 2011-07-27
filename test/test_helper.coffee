@@ -8,7 +8,7 @@ class TestWalker extends Percolate.Walker
     else
       true
 
-module.exports =
+module.exports = {
   Case: nodeunit.testCase
 
   getTestCase: (block) ->
@@ -19,3 +19,4 @@ module.exports =
 
   runTestCase: (node) ->
     (new TestWalker).walk(node)
+}

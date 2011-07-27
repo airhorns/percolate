@@ -35,11 +35,11 @@ task 'dev', 'compile the examples/simple.html file when anything changes', (opti
     map:
      'src/percolate.coffee'    : (matches) -> muffin.compileScript(matches[0], 'lib/percolate.js', options)
      'src/(.+).coffee'         : (matches) -> 
-     'examples/simple.coffee'  : (matches) -> 
+     'examples/batman.coffee'  : (matches) -> 
      'templates/(.+)'          : (matches) -> 
     after: ->
-      console.log "Running examples/simple.coffee ..."
-      exec 'coffee examples/simple.coffee', (stdout, stderr) ->
+      console.log "Running examples/batman.coffee ..."
+      exec 'coffee examples/batman.coffee', (stdout, stderr) ->
         for stream in arguments 
           if stream
             stream = stream.toString()

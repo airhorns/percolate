@@ -43,6 +43,26 @@ exports['TestCase assertions'] = Test.Case
     test.ok Test.runTestCase(node), 'Test Case passes'
     test.done()
 
+  'should accept strict equal and not strict equal assertions': (test) -> 
+    test.expect(5)
+    node = Test.getTestCase ->
+      @strictEqual true, -> 
+        test.ok 'value retrieved'
+        true
+      x = {}
+      @strictEqual x, -> 
+        test.ok 'value retrieved'
+        x
+      @notStrictEqual {}, -> 
+        test.ok 'value retrieved'
+        {}
+      @notStrictEqual 1, -> 
+        test.ok 'value retrieved'
+        true
+    
+    test.ok Test.runTestCase(node), 'Test Case passes'
+    test.done()
+
 exports['TestCase setups'] = Test.Case
 
   'should run before assertions': (test) -> 

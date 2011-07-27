@@ -4,9 +4,76 @@ path = require 'path'
 hljs = require 'highlight.js'
 ghm = require "github-flavored-markdown"
 eco = require "eco"
+assert = require "assert"
+util = require 'util'
 
 Highlight = (str) ->
   hljs.highlight('javascript', str).value
+
+class Spy
+  constructor: (original) ->
+    @called = false
+    @callCount = 0
+    @calls = []
+    @original = original
+    @fixedReturn = false
+
+  whichReturns: (value) ->
+    @fixedReturn = true
+    @fixedReturnValue = value
+    @
+
+# Simple mock function implementation stolen from Jasmine.
+# Use `createSpy` to get back a function which tracks if it has been
+# called, how many times, with what arguments, and optionally returns
+# something specific. Example:
+#
+#    observer = createSpy()
+#
+#    object.on('click', observer)
+#    object.fire('click', {foo: 'bar'})
+#
+#    equal observer.called, true
+#    equal observer.callCount, 1
+#    deepEqual observer.lastCallArguments, [{foo: 'bar'}]
+#
+createSpy = (original) ->
+  spy = new Spy(original)
+
+  f = (args...) ->
+    f.called = true
+    f.callCount++
+    f.lastCall =
+      context: this
+      arguments: args
+
+    f.lastCallArguments = f.lastCall.arguments
+    f.lastCallContext = f.lastCall.context
+    f.calls.push f.lastCall
+    
+    unless f.fixedReturn
+      f.original?.call(this, args...)
+    else
+      f.fixedReturnValue
+
+  for k, v of spy
+    f[k] = v
+
+  f
+
+# `spyOn` can also be used as a shortcut to create or replace a
+# method on an existing object with a spy. Example:
+#
+#    object = new DooHickey
+#
+#    spyOn(object, 'doStuff')
+#
+#    equal object.doStuff.callCount, 0
+#    object.doStuff()
+#    equal object.doStuff.callCount, 1
+#
+spyOn = (obj, method) ->
+  obj[method] = createSpy(obj[method])
 
 # Nodes
 # =====
@@ -28,6 +95,8 @@ class TextNode extends LeafNode
 class ReferenceNode extends LeafNode
   constructor: (@parent, @context, @node) ->
     super
+
+  identifier: -> "#{@context}.#{@node}"
 
 class ConsoleNode extends LeafNode
   outputValue: ->
@@ -82,14 +151,20 @@ class TestCaseNode extends TestContainerNode
     @children.push new TextNode(@, string)
 
   # Assertions
-  equal: (expected, actualFunction) ->
-    @children.push new AssertionNode(@, actualFunction, `function(value) {return value == expected;}`)
-  notEqual: (expected, actualFunction) ->
-    @children.push new AssertionNode(@, actualFunction, `function(value) {return value != expected;}`)
-  strictEqual: (expected, actualFunction) ->
-    @children.push new AssertionNode(@, actualFunction, (value) -> value == expected)
-  notStrictEqual: (expected, actualFunction) ->
-    @children.push new AssertionNode(@, actualFunction, (value) -> value != expected)
+  for k in ['equal', 'notEqual', 'deepEqual', 'notDeepEqual', 'strictEqual', 'notStrictEqual']
+    do (k) =>
+      @::[k] = (expected, actualFunction) ->
+        self = this
+        @children.push new AssertionNode @, actualFunction, (actualValue) ->
+          try
+            assert[k](actualValue, expected)
+            return true
+          catch e
+            self.error = e
+            return false
+
+  ok: (actualFunction) ->
+    @equal true, actualFunction
   
   param: (name, type) ->
 
@@ -103,6 +178,8 @@ class DocumentationNode extends TestContainerNode
     @children.push new FunctionDocumentationNode(@, arguments...)
   document: () ->
     @children.push new DocumentationNode(@, arguments...)
+  describe: (text) ->
+    @children.push new TextNode(@, text)
 
 class FunctionDocumentationNode extends DocumentationNode
   constructor: (@parent, @key, blockFunction) ->
@@ -119,12 +196,15 @@ class FunctionDocumentationNode extends DocumentationNode
       @param(key, type)
     params
   
-  description: (text) ->
-    @children.push new TextNode(@, text)
+  callSignature: ->
+    "#{@key}(#{@paramsList()})"
 
   signature: ->
-    "#{@parentName()}.#{@key}(#{@paramsList()})"
+    "#{@parentName()}.#{@callSignature()}"
   
+  identifier: ->
+    "#{@parentName()}.#{@key}"
+
   parentName: ->
     current = @
     while (next = current.parent) && next != current
@@ -241,7 +321,7 @@ class MarkdownOutputWalker extends TransformingWalker
   renderFunctionDocumentationNode: (node) ->  "### #{node.name} \n"
   renderTestCaseNode: (node) -> "#### #{node.name} \n"
   renderExampleTestCaseNode: (node) -> "#### #{node.name} \n"
-  renderAssertionNode: (node) ->
+  renderConsoleNode: (node) ->
     """
      
     #{@renderConsole(node)}
@@ -257,7 +337,7 @@ class MarkdownOutputWalker extends TransformingWalker
     
     """
 
-  renderReferenceNode: (node) -> "\n*see #{node.context}.#{node.node}*\n\n"
+  renderReferenceNode: (node) -> "\n*see #{node.identifier()}*\n\n"
     
   renderFunction: (f) ->
     text = f.toString().replace(whitespace_rx, ' ').trim()
@@ -283,16 +363,19 @@ class HTMLOutputWalker extends MarkdownOutputWalker
     switch node.constructor.name
       when 'FunctionDocumentationNode'
         keys = (@objects[node.parentName()] ||= [])
-        keys.push node
+        keys.push {anchor: @idSafe(node.identifier()), name: node.callSignature()}
     super
 
-  renderBaseNode: (node) -> @wrapHTML "<h1 class=\"base\">#{node.name}</h1>"
-  renderDocumentationNode: (node) -> @wrapHTML "<h2 class=\"object\">#{node.name}</h2>"
-  renderFunctionDocumentationNode: (node) ->  @wrapHTML "<h3 class=\"function\">#{node.name}</h3>"
-
+  renderBaseNode: (node) -> 
+    @wrapHTML "<h1 class=\"base\">#{node.name}</h1>"
+  renderDocumentationNode: (node) -> 
+    @wrapHTML "<h2 class=\"object\">#{node.name}</h2>"
+  renderFunctionDocumentationNode: (node) -> 
+    @wrapHTML "<h3 class=\"function\" id=#{@idSafe(node.identifier())}>#{node.callSignature()}</h3>"
+  renderReferenceNode: (node) -> 
+    "\nsee <a href=\"##{@idSafe(node.identifier())}\">#{node.identifier()}</a>"
   renderConsoleNode: (node) ->
-    @wrapConsole @renderConsole(node)
-
+    @wrapConsole(@renderConsole(node))
   renderMultiConsoleNode: (multi) -> 
     out = for node in multi.children
       node.rendered = true
@@ -300,30 +383,42 @@ class HTMLOutputWalker extends MarkdownOutputWalker
     @wrapConsole out.join('')
  
   renderConsole: (node) -> 
-    "js> #{Highlight(@renderFunction(node.inputFunction))}\n#{Highlight('' + node.outputValue())}\n"
-
-  wrapConsole: (str) -> @wrapHTML "<pre><code>#{str}</code></pre>"
+    "js> #{Highlight(@renderFunction(node.inputFunction))}\n#{Highlight(util.inspect(node.outputValue()))}\n"
+  wrapConsole: (str) -> 
+    @wrapHTML """
+    <pre><code>#{str}</code></pre>
+    """
   wrapHTML: (str) ->
     """
-
+    
     #{str}
     
     """
+
+  idSafe_rx = /[^\.\:a-zA-Z0-9_-]/g
+  idSafe: (str) ->
+    str.replace(idSafe_rx, '_')
+
   render: (node) ->
     markdownishOutput = super
     data = 
       title: node.name
       body: ghm.parse(markdownishOutput)
-      objects: @objects 
+      tableOfContents: @objects 
     eco.render OutputTemplate, data
   
   renderToFile: (test, filename) ->
     fs.writeFileSync(filename, @render(test))
 
-Document = (name, block) ->
+Document = (name, filename, block) ->
+  if !block?
+    block = filename
   node = new BaseNode(name, block)
   markdownRenderer = new HTMLOutputWalker
-  markdownRenderer.renderToFile(node, './examples/simple.html')
+  if filename?
+    markdownRenderer.renderToFile(node, filename)
+  else
+    console.log markdownRenderer.render(node)
   true
 
-module.exports = {Node, LeafNode, TextNode, AssertionNode, ExampleTestCaseNode, TestCaseNode, DocumentationNode, FunctionDocumentationNode, BaseNode, Walker, MultiConsoleTransformation, TestRunnerWalker, MarkdownOutputWalker, HTMLOutputWalker, document: Document}
+module.exports = {Node, LeafNode, TextNode, AssertionNode, ExampleTestCaseNode, TestCaseNode, DocumentationNode, FunctionDocumentationNode, BaseNode, Walker, MultiConsoleTransformation, TestRunnerWalker, MarkdownOutputWalker, HTMLOutputWalker, document: Document, createSpy, spyOn}

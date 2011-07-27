@@ -9,14 +9,13 @@
        Remove this if you use the .htaccess -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-  <title></title>
+  <title>Batman</title>
   <meta name="description" content="">
   <meta name="author" content="">
 
   <!-- Mobile viewport optimized: j.mp/bplateviewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href='http://fonts.googleapis.com/css?family=Inconsolata|Rosario&v2' rel='stylesheet' type='text/css'>
-
+  <link href='http://fonts.googleapis.com/css?family=Merriweather|Inconsolata&v2' rel='stylesheet' type='text/css'>
   <style type="text/css">
     /**
      * HTML5 ✰ Boilerplate
@@ -158,7 +157,7 @@
       /* #444 looks better than black: twitter.com/H_FJ/statuses/11800719859 */
       color: #444;
       /* Set your base font here, to apply evenly */
-      font-family: 'Rosario', Georgia, serif;
+      font-family: 'Merriweather', Georgia, serif;
     }
 
     h1, h2, h3, h4, h5, h6 { font-weight: bold; }
@@ -201,8 +200,18 @@
     	list-style: none;
     }
 
-    ul.object_list li:nth-child(2n) {
+    ul.object_list ul li:nth-child(2n) {
     	background-color: #F5F5FF;
+    }
+
+    h2.object:after {
+      content: ' object';
+      color: #EEEEEF;
+    }
+
+    h3.function:after {
+      content: ' function';
+      color: #EEEEEF;
     }
 
     /* For image replacement */
@@ -405,20 +414,50 @@
         <input type="search" placeholder="Enter a function or keyword..."/>
       </form>
       <ul class="object_list">
+        
+        <li>Batman.Object
+          <ul>
+          
+            <li><a href="#Batman.Object.get">get()</a></li>
+          
+            <li><a href="#Batman.Object.set">set()</a></li>
+          
+          </ul>
+        </li>
       
-        
-          <li>Batman.Object.get()</li>
-        
-          <li>Batman.Object.set()</li>
-        
+        <li>Batman.Object.prototype
+          <ul>
+          
+            <li><a href="#Batman.Object.prototype.get">get(key)</a></li>
+          
+            <li><a href="#Batman.Object.prototype.set">set(key,value)</a></li>
+          
+            <li><a href="#Batman.Object.prototype.observe">observe(key,observer)</a></li>
+          
+            <li><a href="#Batman.Object.prototype.forget">forget(key,observer)</a></li>
+          
+          </ul>
+        </li>
       
-        
-          <li>Batman.Object.prototype.get(key)</li>
-        
-          <li>Batman.Object.prototype.set(key,value)</li>
-        
-          <li>Batman.Object.prototype.observe(key,observer)</li>
-        
+        <li>Batman.Hash.Prototype
+          <ul>
+          
+            <li><a href="#Batman.Hash.Prototype.get">get()</a></li>
+          
+            <li><a href="#Batman.Hash.Prototype.set">set()</a></li>
+          
+          </ul>
+        </li>
+      
+        <li>Batman.Set.Prototype
+          <ul>
+          
+            <li><a href="#Batman.Set.Prototype.add">add()</a></li>
+          
+            <li><a href="#Batman.Set.Prototype.hasItem">hasItem()</a></li>
+          
+          </ul>
+        </li>
       
       </ul>
     </div>
@@ -427,27 +466,33 @@
 
 <h2 class="object">Batman.Object</h2>
 
-<h3 class="function">get</h3>
+<h3 class="function" id=Batman.Object.get>get()</h3>
 
-<p><em>see Batman.Object.prototype.get</em></p>
+<p>see <a href="#Batman.Object.prototype.get">Batman.Object.prototype.get</a></p>
 
-<h3 class="function">set</h3>
+<h3 class="function" id=Batman.Object.set>set()</h3>
 
-<p><em>see Batman.Object.prototype.set</em></p>
+<p>see <a href="#Batman.Object.prototype.set">Batman.Object.prototype.set</a></p>
 
 <h2 class="object">Batman.Object.prototype</h2>
 
-<h3 class="function">get</h3>
+<p><code>Batman.Object</code> is the heart of the <code>Batman</code> runtime. Instances and subclasses inherit all the <code>get</code>/<code>set</code> logic, the deep keypath resolution, the <code>accessor</code> computation logic, the <code>Observable</code> logic, the <code>event</code> logic, and more. </p>
 
-<p><code>get</code> retrieves any property from any <code>Batman.Object</code>. Instead of doing normal property lookups like you would in normal Javascript, you <em>must</em> use <code>get</code> to retrieve anything from a Batman object. </p>
+<h3 class="function" id=Batman.Object.prototype.get>get(key)</h3>
+
+<p><code>get</code> retrieves any property from any <code>Batman.Object</code>. Instead of doing normal property lookups like you would in normal Javascript, you <em>must</em> use <code>get</code> to retrieve anything from a Batman object. <code>get</code> also supports lookups on 'deep' keys. </p>
 
 <h4>get a simple key</h4>
 
-<p>js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)<br />bar</p>
+<pre><code>js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)
+<span class="string">'bar'</span>
+</code></pre>
 
 <h4>get a key on a smart object</h4>
 
-<p>js> <span class="keyword">this</span>.obj.get(<span class="string">'baz'</span>)<br /><span class="literal">true</span></p>
+<pre><code>js> <span class="keyword">this</span>.obj.get(<span class="string">'baz'</span>)
+<span class="literal">true</span>
+</code></pre>
 
 <p>Note that while the above works, doing a vanilla JavaScript key access will not! </p>
 
@@ -459,21 +504,39 @@ undefined
 
 <p>This is because <code>@obj</code> has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using <code>get</code> and <code>set</code> to retrieve or set properties on <code>Batman.Object</code>s. This is a departure from the usual way of doing things, and it takes more code, but it's the only way that the rest of the goodness Batman provides can be implemented. </p>
 
-<h3 class="function">set</h3>
+<h4>get a deep key</h4>
+
+<pre><code>js> <span class="keyword">this</span>.obj.get(<span class="string">'qux.bar.baz'</span>)
+<span class="string">'Bonus!'</span>
+</code></pre>
+
+<h4>get a deep key where a middle segment is missing</h4>
+
+<pre><code>js> <span class="keyword">this</span>.obj.foo = {}
+{}
+js> <span class="keyword">this</span>.obj.get(<span class="string">'foo.bar.baz'</span>)
+undefined
+</code></pre>
+
+<p><code>get</code> is smart and will traverse the keypath as deep as it can. If an undefined key is encountered, the <code>get</code> will return undefined. </p>
+
+<h3 class="function" id=Batman.Object.prototype.set>set(key,value)</h3>
 
 <p><code>set</code> stores a value in a property on any <code>Batman.Object</code>. Instead of doing normal sets like you would in normal Javascript, you <em>must</em> use <code>set</code> to retrieve anything from a Batman object. </p>
 
 <h4>set a simple key</h4>
 
 <pre><code>js> <span class="keyword">this</span>.obj.set(<span class="string">'foo'</span>, <span class="string">'bar'</span>)
-bar
+<span class="string">'bar'</span>
 js> <span class="keyword">this</span>.obj.get(<span class="string">'foo'</span>)
-bar
+<span class="string">'bar'</span>
 </code></pre>
 
 <h4>set a key on a smart object</h4>
 
-<p>js> <span class="keyword">this</span>.obj.set(<span class="string">'baz'</span>, <span class="string">'qux'</span>)<br />qux</p>
+<pre><code>js> <span class="keyword">this</span>.obj.set(<span class="string">'baz'</span>, <span class="string">'qux'</span>)
+<span class="string">'qux'</span>
+</code></pre>
 
 <p>Note that while the above works, doing a vanilla JavaScript key access will not! </p>
 
@@ -487,23 +550,36 @@ undefined
 
 <p>This is because <code>@obj</code> has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using <code>get</code> and <code>set</code> to retrieve or set properties on <code>Batman.Object</code>s. This is a departure from the usual way of doing things, and it takes more code, but it's the only way that the rest of the goodness Batman provides can be implemented. </p>
 
-<h3 class="function">observe</h3>
+<h3 class="function" id=Batman.Object.prototype.observe>observe(key,observer)</h3>
 
 <p><code>observe</code> adds a change listener to a <code>Batman.Object</code>, which then gets called any time the <code>key</code> changes. This is the heart of the binding system <code>Batman</code> uses in its views because it allows views to be notified when the data they represet changes, and thus update themselves. </p>
 
 <h4>observe a key for a change</h4>
 
-<pre><code>js> <span class="keyword">this</span>.called = <span class="literal">true</span>; }
-<span class="function"><span class="keyword">function</span> <span class="params">(value)</span> {</span>
-              <span class="keyword">return</span> <span class="keyword">this</span>.called = <span class="literal">true</span>;
-            }
-js> <span class="keyword">this</span>.obj.observe(<span class="string">'foo'</span>, <span class="function"><span class="keyword">function</span><span class="params">(oldValue, newValue)</span> {</span>})
-[object Object]
+<pre><code>js> <span class="keyword">this</span>.obj.observe(<span class="string">'foo'</span>, <span class="keyword">this</span>.spy)
+{ _batman: { properties: { _storage: [Object], length: <span class="number">0</span> } },
+  foo: <span class="string">'bar'</span> }
 js> <span class="keyword">this</span>.obj.set(<span class="string">'foo'</span>, <span class="string">'bar'</span>)
-bar
-js> <span class="keyword">this</span>.render.called
-undefined
+<span class="string">'bar'</span>
+js> <span class="keyword">this</span>.spy.lastCallArguments
+[ <span class="string">'bar'</span>, undefined ]
 </code></pre>
+
+<h3 class="function" id=Batman.Object.prototype.forget>forget(key,observer)</h3>
+
+<p><code>forget</code> removes a change listener from a <code>Batman.Object</code> </p>
+
+<h2 class="object">Batman.Hash.Prototype</h2>
+
+<h3 class="function" id=Batman.Hash.Prototype.get>get()</h3>
+
+<h3 class="function" id=Batman.Hash.Prototype.set>set()</h3>
+
+<h2 class="object">Batman.Set.Prototype</h2>
+
+<h3 class="function" id=Batman.Set.Prototype.add>add()</h3>
+
+<h3 class="function" id=Batman.Set.Prototype.hasItem>hasItem()</h3>
     </div>
     <footer>
     </footer>
