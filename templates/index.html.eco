@@ -9,7 +9,7 @@
        Remove this if you use the .htaccess -->
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 
-  <title><%= @title %></title>
+  <title><%= @title %> Documentation</title>
   <meta name="description" content="">
   <meta name="author" content="">
 
@@ -143,8 +143,9 @@
     ::selection { background:#FF5E99; color:#fff; text-shadow: none; }
 
     /* j.mp/webkit-tap-highlight-color */
-    a:link { -webkit-tap-highlight-color: #FF5E99; }
-
+    a, a:active, a:link { color: #373862; -webkit-tap-highlight-color: #FF5E99; }
+    a:hover, a:focus, a:visited { color: #47497c;}
+    
     /* Make buttons play nice in IE:
        www.viget.com/inspire/styling-the-button-element-in-internet-explorer/ */
     button {  width: auto; overflow: visible; }
@@ -162,14 +163,16 @@
 
     h1, h2, h3, h4, h5, h6 { font-weight: bold; }
     h1 { font-size: 30px; color: #373862; margin-bottom: 15px; }
-    h2 { font-size: 22px; color: #373862; margin-bottom: 30px; }
-    h3 { font-size: 20px; color: #373862; margin-bottom: 20px; }
+    h2 { font-size: 22px; color: #373862; margin-bottom: 30px; border-bottom: 2px solid #E6E6F0; }
+    h3 { font-size: 20px; color: #373862; margin-bottom: 20px; padding-bottom: 2px; border-bottom: 1px solid #E6E6F0; }
     h4 { font-size: 16px; color: #373862; line-height: 22px; margin-bottom: 8px; }
     h5 { font-size: 14px; color: #000; line-height: 20px; margin-bottom: 8px; }
-   
-    a, a:active, a:visited { color: #607890; }
-    a:hover { color: #036; }
     
+    p + h2, p + h3, p + h4, p + h5 {
+      margin-top: 15px;
+    }
+
+
     #sidebar {
       width: 240px;
       float: left;
@@ -206,12 +209,12 @@
 
     h2.object:after {
       content: ' object';
-      color: #EEEEEF;
+      color: #E6E6F0;
     }
 
     h3.function:after {
       content: ' function';
-      color: #EEEEEF;
+      color: #E6E6F0;
     }
 
     /* For image replacement */
@@ -434,8 +437,106 @@
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.js"></script>
   <script type="text/javascript">
+    window.levenshtein = function levenshtein( a, b )
+    {
+      var i;
+      var j;
+      var cost;
+      var d = new Array();
+     
+      if ( a.length == 0 )
+      {
+        return b.length;
+      }
+     
+      if ( b.length == 0 )
+      {
+        return a.length;
+      }
+     
+      for ( i = 0; i <= a.length; i++ )
+      {
+        d[ i ] = new Array();
+        d[ i ][ 0 ] = i;
+      }
+     
+      for ( j = 0; j <= b.length; j++ )
+      {
+        d[ 0 ][ j ] = j;
+      }
+     
+      for ( i = 1; i <= a.length; i++ )
+      {
+        for ( j = 1; j <= b.length; j++ )
+        {
+          if ( a.charAt( i - 1 ) == b.charAt( j - 1 ) )
+          {
+            cost = 0;
+          }
+          else
+          {
+            cost = 1;
+          }
+     
+          d[ i ][ j ] = Math.min( d[ i - 1 ][ j ] + 1, d[ i ][ j - 1 ] + 1, d[ i - 1 ][ j - 1 ] + cost );
+          
+          if(
+             i > 1 && 
+             j > 1 &&  
+             a.charAt(i - 1) == b.charAt(j-2) && 
+             a.charAt(i-2) == b.charAt(j-1)
+             ){
+              d[i][j] = Math.min(
+                d[i][j],
+                d[i - 2][j - 2] + cost
+              )
+             
+          }
+        }
+      }
+     
+      return d[ a.length ][ b.length ];
+    }
+    
+    jQuery.fn.liveUpdate = function(list){
+      list = jQuery(list);
+      if ( list.length ) {
+        var rows = list.children('li'),
+          cache = rows.map(function(){
+            return this.innerHTML.toLowerCase();
+          });
+          
+        this
+          .keyup(filter).keyup()
+          .parents('form').submit(function(){
+            return false;
+          });
+      }
+        
+      return this;
+        
+      function filter(){
+        var term = jQuery.trim( jQuery(this).val().toLowerCase() ), scores = [];
+        
+        if ( !term ) {
+          rows.show();
+        } else {
+          rows.hide();
+
+          cache.each(function(i){
+            var score = levenshtein(this, term);
+            if (score < 5) { scores.push([score, i]); }
+          });
+
+          jQuery.each(scores.sort(function(a, b){return b[0] - a[0];}), function(){
+            jQuery(rows[ this[1] ]).show();
+          });
+        }
+      }
+    };
+
     $(document).ready(function() {
-      
+      $('#sidebar form input').liveUpdate('ul.object_list')
     });
   </script>
 </body>
