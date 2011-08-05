@@ -11,7 +11,10 @@ task 'build', 'compile percolate', (options) ->
     files: './src/**/*'
     options: options
     map:
-      'src/percolate.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/percolate.js', options)
+      'src/(.+).coffee'       : (matches) -> muffin.compileScript(matches[0], "lib/#{matches[1]}.js", options)
+      'src/percolate.language' : (matches) -> 
+        [child, promise] = muffin.exec("language -g #{matches[0]} > lib/percolate_parser.js")
+        promise.then(-> console.log "Compiled language #{matches[0]} successfully.")
 
 task 'test', 'compile shopify.js and the tests and run them on the command line', (options) ->
   runner = (require 'nodeunit').reporters.default
