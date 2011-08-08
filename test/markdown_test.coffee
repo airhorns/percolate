@@ -16,7 +16,7 @@ exports['Simple markdown rendering'] = Test.Case
     A scary dude.
     """
 
-    test.equal output(tree.name), "Batman"
+    test.equal output(tree.documentName), "Batman"
     test.done()
 
   'h2 should become object document title': (test) ->
@@ -28,8 +28,8 @@ exports['Simple markdown rendering'] = Test.Case
     A scary dude.
     """
 
-    test.equal output(tree.name), "Batman"
-    test.equal output(tree.children[0].name), "Batman.Object"
+    test.equal output(tree.documentName), "Batman"
+    test.equal output(tree.children[0].objectName), "Batman.Object"
     test.done()
 
   'h3 should become function title': (test) ->
@@ -43,9 +43,9 @@ exports['Simple markdown rendering'] = Test.Case
     A scary dude.
     """
 
-    test.equal output(tree.name), "Batman"
-    test.equal output(tree.children[0].name), "Batman.Object"
-    test.equal output(tree.children[0].children[0].name), "get(key: String)"
+    test.equal output(tree.documentName), "Batman"
+    test.equal output(tree.children[0].objectName), "Batman.Object"
+    test.equal output(tree.children[0].children[0].rawSignature), "get(key: String)"
     test.done()
     
   'h4 should become example title': (test) ->
@@ -61,10 +61,10 @@ exports['Simple markdown rendering'] = Test.Case
     A scary dude.
     """
 
-    test.equal output(tree.name), "Batman"
-    test.equal output(tree.children[0].name), "Batman.Object"
-    test.equal output(tree.children[0].children[0].name), "get(key: String)"
-    test.equal output(tree.children[0].children[0].children[0].name), "get a simple key"
+    test.equal output(tree.documentName), "Batman"
+    test.equal output(tree.children[0].objectName), "Batman.Object"
+    test.equal output(tree.children[0].children[0].rawSignature), "get(key: String)"
+    test.equal output(tree.children[0].children[0].children[0].caseName), "get a simple key"
     test.done()
 
 exports['Nested markdown rendering'] = Test.Case
@@ -81,8 +81,36 @@ exports['Nested markdown rendering'] = Test.Case
     A scary dude.
     """
     
-    test.equal output(tree.name), "<em>Batman</em>"
-    test.equal output(tree.children[0].name), "<strong>Batman.<em>Object</em></strong>"
-    test.equal output(tree.children[0].children[0].name), "get(<code>key</code>: <code>String</code>)"
+    test.equal output(tree.documentName), "<em>Batman</em>"
+    test.equal output(tree.children[0].objectName), "<strong>Batman.<em>Object</em></strong>"
+    test.equal output(tree.children[0].children[0].rawSignature), "get(<code>key</code>: <code>String</code>)"
     test.done()
 
+exports['Inline code execution'] = Test.Case
+  'simple examples should be run': (test) ->
+    tree = getTree """
+    # Batman
+    
+    ## Object
+    
+        @show -> true
+
+    """
+    
+    test.equals tree.children[0].setupFunctions.length, 1
+    test.done()
+
+exports['Reference pickups'] = Test.Case
+  'references coming after the object defintion should be picked up': (test) ->
+    tree = getTree """
+    # Batman
+    
+    ## Object
+    
+    ## Hash
+    
+    see 'Batman.Object'
+
+    """
+    
+    test.done()

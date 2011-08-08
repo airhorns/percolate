@@ -6,6 +6,8 @@ eco = require "eco"
 assert = require "assert"
 util = require 'util'
 
+IdentifierWalker = require './walkers/identifier'
+
 Highlight = (str) ->
   hljs.highlight('javascript', str).value
 
@@ -13,6 +15,8 @@ Highlight = (str) ->
 # =====
 class LeafNode
   constructor: (@parent) ->
+    @name = @constructor.__nodeName || @constructor.name.replace('Node', '')
+
   traverse: (walker) ->
     if !walker.enteredNode or walker.enteredNode(@) != false
       for child in @children || []
@@ -33,15 +37,22 @@ class Node extends LeafNode
     if typeof block is 'function'
       block.call(@)
 
+  _traverseIdentifier: (nameOrTree) ->
+    if typeof nameOrTree is 'string'
+      nameOrTree
+    else
+      IdentifierWalker.getIdentifier(nameOrTree)
+
 class TextNode extends LeafNode
   constructor: (@parent, @text) -> 
     super
 
 class ReferenceNode extends LeafNode
-  constructor: (@parent, @context, @node) ->
+  constructor: (@parent, @reference) ->
     super
 
-  identifier: -> "#{@context}.#{@node}"
+  identifier: -> 
+    @_reference ||= @_traverseIdentifier(@reference)
 
 class ConsoleNode extends LeafNode
   outputValue: ->
@@ -87,12 +98,12 @@ class TestContainerNode extends Node
   test: () ->
     @children.push node = new TestCaseNode(@, arguments...)
     node
-  see: (context, node) ->
-    @children.push node = new ReferenceNode(@, context, node)
+  see: (identifier) ->
+    @children.push node = new ReferenceNode(@, identifer)
     node
   
 class TestCaseNode extends TestContainerNode
-  constructor: (@parent, @name, caseFunction) ->
+  constructor: (@parent, @caseName, caseFunction) ->
     super
 
   # API in which docs are written
@@ -123,7 +134,7 @@ class ExampleTestCaseNode extends TestCaseNode
   displayAssertions: true
 
 class DocumentationNode extends TestContainerNode
-  constructor: (@parent, @name, blockFunction) ->
+  constructor: (@parent, @objectName, blockFunction) ->
     super
   function: () -> 
     @children.push node = new FunctionDocumentationNode(@, arguments...)
@@ -134,7 +145,7 @@ class DocumentationNode extends TestContainerNode
     node
 
 class FunctionDocumentationNode extends DocumentationNode
-  constructor: (@parent, @key, blockFunction) ->
+  constructor: (@parent, @rawSignature, blockFunction) ->
     @paramTypes = {}
     super
 
@@ -150,35 +161,49 @@ class FunctionDocumentationNode extends DocumentationNode
     params
   
   callSignature: ->
-    "#{@key}(#{@paramsList()})"
+    "#{@key()}(#{@paramsList()})"
 
   signature: ->
     "#{@parentName()}.#{@callSignature()}"
   
   identifier: ->
-    "#{@parentName()}.#{@key}"
-
+    "#{@parentName()}.#{@key()}"
+  
+  key: -> @rawSignature
+    
   parentName: ->
     current = @
     while (next = current.parent) && next != current
-      return next.name if next.name?
+      for k in ['documentName', 'objectName', 'caseName']
+        return next[k] if next[k]?
+        
       current = next
 
     return "global"
+  
+  # Wrap the two functions which might need traversal in that traversal, and cache the results.
+  for k in ['key', 'parentName']
+    do (k) =>
+      basic = @::[k]
+      storageKey = "_#{k}"
+      @::[k] = -> 
+        unless @[storageKey]?
+          @[storageKey] = @_traverseIdentifier(basic.apply(@,arguments))
+        @[storageKey]
 
   paramsList: ->
     list = [k for k, v of @paramTypes]
     list.join(', ')
-
+  
 class BaseNode extends Node
-  constructor: (@name, blockFunction) ->
+  constructor: (@documentName, blockFunction) ->
+    @name = 'Base'
     @parent = false
     @children = []
     blockFunction.call(@) if blockFunction? and typeof blockFunction is 'function'
-  title: (@name) ->
+  title: (@documentName) ->
   document: () ->
     @children.push node = new DocumentationNode(@, arguments...)
     node
-
 
 module.exports = {Node, LeafNode, TextNode, AssertionNode, ExampleTestCaseNode, TestCaseNode, DocumentationNode, FunctionDocumentationNode, BaseNode}

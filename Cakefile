@@ -12,7 +12,7 @@ task 'build', 'compile percolate', (options) ->
     options: options
     map:
       'src/(.+).coffee'       : (matches) -> muffin.compileScript(matches[0], "lib/#{matches[1]}.js", options)
-      'src/percolate.language' : (matches) -> 
+      'src/parsers/percolate.language' : (matches) -> 
         [child, promise] = muffin.exec("language -g #{matches[0]} > lib/percolate_parser.js")
         promise.then(-> console.log "Compiled language #{matches[0]} successfully.")
 

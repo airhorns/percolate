@@ -28,7 +28,7 @@ See `Batman.Object.prototype.set`
 
     @equal true, -> @obj.get 'baz'
 
-Note that while the above works, doing a vanilla JavaScript key access will not!'
+Note that while the above works, doing a vanilla JavaScript key access will not!
 
     @equal undefined, -> @obj['baz']
     @equal undefined, -> @obj.baz

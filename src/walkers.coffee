@@ -2,3 +2,4 @@ module.exports =
   Walker: {}
   TestRunnerWalker: require './walkers/test_runner'
   HtmlWalker: require './walkers/html'
+  TableOfContentsWalker: require './walkers/table_of_contents'
