@@ -3,19 +3,19 @@ Percolate = require '../src/percolate'
 
 exports['Function string parsing'] = Test.Case
   setUp: (callback) ->
-    @walker = new Percolate.MarkdownOutputWalker
+    @parser = Percolate.FunctionBodyParser
     callback()
 
   'should render simple functions': (test) ->
-    test.equal @walker.renderFunction( -> @obj.method() ), 'this.obj.method()'
+    test.equal @parser.parse( -> @obj.method() ), 'this.obj.method()'
     test.done()
   
   'should render functions with calls to functions with arguments': (test) ->
-    test.equal @walker.renderFunction( -> @obj.method(true, 'false', 10, {foo: 'bar'}) ), 'this.obj.method(true, \'false\', 10, { foo: \'bar\' })'
+    test.equal @parser.parse( -> @obj.method(true, 'false', 10, {foo: 'bar'}) ), 'this.obj.method(true, \'false\', 10, { foo: \'bar\' })'
     test.done()
 
   'should render functions with multiple lines': (test) ->
-    str = @walker.renderFunction ->
+    str = @parser.parse ->
       @obj.testMethod one
       assignment = foo blah
       @obj.whatever { wibble: 'wobble'}

@@ -7,10 +7,10 @@ module.exports = class TableOfContentsWalker extends InstanceMethodWalker
     tree.traverse(walker)
     walker.tableOfContents()
   
-  constructor: () -> @toc = []
+  constructor: () -> @toc = {}
   tableOfContents: () -> @toc
   
-  enterFunctionDocumentation: (node) -> 
+  enteredFunctionDocumentation: (node) ->
     parentKeys = @toc[node.parentName()] ||= []
     parentKeys.push 
       anchor: node.identifier()

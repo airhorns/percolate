@@ -26,7 +26,7 @@ Percolate =
 
   compileInPlace: (sourceFileName) ->
     output = @compileFromFile(sourceFileName)
-    console.error output
+
     (outputFileName = sourceFileName.split('.')).pop()
     outputFileName.push('html')
     outputFileName = outputFileName.join('.')

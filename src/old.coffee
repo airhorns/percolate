@@ -1,3 +1,4 @@
+
 class MultiConsoleTransformation extends Walker
   walk: (root) ->
     if root.children?

@@ -1,12 +1,13 @@
 nodeunit = require 'nodeunit'
 Percolate = require '../src/percolate'
 
-class TestWalker extends Percolate.Walker
-  visit: (node) ->
+class TestWalker
+  traversesTextNodes: false
+  success: true
+  exitedNode: (node) ->
     if node.success?
-      node.success()
-    else
-      true
+      @success = node.success() && @success
+    true
 
 module.exports = {
   Case: nodeunit.testCase
@@ -17,6 +18,8 @@ module.exports = {
   getBaseCase: (block) ->
     node = new Percolate.BaseNode 'test case', block
 
-  runTestCase: (node) ->
-    (new TestWalker).walk(node)
+  runTestCase: (tree) ->
+    walker = new TestWalker
+    tree.traverse walker
+    walker.success
 }

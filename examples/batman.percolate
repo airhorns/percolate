@@ -1,21 +1,26 @@
 # Batman
+ 
+`Batman` is the coolest.
+
+    `Batman = (require('batman')).Batman`
 
 ## Batman.Object
 
 ### get
 See `Batman.Object.prototype.get`
+
 ### set
 See `Batman.Object.prototype.set`
 
 ## Batman.Object.prototype
 
 `Batman.Object` is the heart of the `Batman` runtime. Instances and subclasses inherit all the `get`/`set` logic, the deep keypath resolution, the `accessor` computation logic, the `Observable` logic, the `event` logic, and more.
+    
+    @setup -> @obj = new Batman.Object {foo: 'bar'}
 
 ### get(key: String)
 
 `get` retrieves any property from any `Batman.Object`. Instead of doing normal property lookups like you would in normal Javascript, you _must_ use `get` to retrieve anything from a Batman object. `get` also supports lookups on 'deep' keys.
-
-    @setup -> @obj = new Batman.Object {foo: 'bar'}
 
 #### get a simple key
 
@@ -70,7 +75,7 @@ Note that while the above works, doing a vanilla JavaScript key access will not!
     @equal undefined, -> @obj.baz
     @equal 'qux', -> @obj.get 'baz'
 
-This is because `@obj` has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using `get` and `set` to retrieve or set properties on `Batman.Object`s. This is a departure from the usual way of doing things, and it takes more code, but it\'s the only way that the rest of the goodness Batman provides can be implemented.
+This is because `@obj` has some special keys on it, which can only be accessed through the Batman runtime. Using the runtime is as simple as always using `get` and `set` to retrieve or set properties on `Batman.Object`s. This is a departure from the usual way of doing things, and it takes more code, but it's the only way that the rest of the goodness Batman provides can be implemented.
 
 ### observe(key: String, observer: function(newValue, oldValue))
 
@@ -80,7 +85,7 @@ This is because `@obj` has some special keys on it, which can only be accessed t
 
 #### observe a key for a change
 
-    @setup -> @spy = Percolate.createSpy()
+    @setup -> @spy = helpers.createSpy()
     @show -> @obj.observe('foo', @spy)
     @show -> @obj.set('foo', 'bar')
     @deepEqual ['bar', undefined], -> @spy.lastCallArguments

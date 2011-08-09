@@ -45,7 +45,7 @@ exports['Simple markdown rendering'] = Test.Case
 
     test.equal output(tree.documentName), "Batman"
     test.equal output(tree.children[0].objectName), "Batman.Object"
-    test.equal output(tree.children[0].children[0].rawSignature), "get(key: String)"
+    test.equal output(tree.children[0].children[0].key()), "get"
     test.done()
     
   'h4 should become example title': (test) ->
@@ -63,7 +63,7 @@ exports['Simple markdown rendering'] = Test.Case
 
     test.equal output(tree.documentName), "Batman"
     test.equal output(tree.children[0].objectName), "Batman.Object"
-    test.equal output(tree.children[0].children[0].rawSignature), "get(key: String)"
+    test.equal output(tree.children[0].children[0].key()), "get"
     test.equal output(tree.children[0].children[0].children[0].caseName), "get a simple key"
     test.done()
 
@@ -74,7 +74,7 @@ exports['Nested markdown rendering'] = Test.Case
     
     ## __Batman.*Object*__
     
-    ### get(`key`: ```String```)
+    ### get(key: String)
 
     #### get a simple key
     
@@ -83,7 +83,6 @@ exports['Nested markdown rendering'] = Test.Case
     
     test.equal output(tree.documentName), "<em>Batman</em>"
     test.equal output(tree.children[0].objectName), "<strong>Batman.<em>Object</em></strong>"
-    test.equal output(tree.children[0].children[0].rawSignature), "get(<code>key</code>: <code>String</code>)"
     test.done()
 
 exports['Inline code execution'] = Test.Case

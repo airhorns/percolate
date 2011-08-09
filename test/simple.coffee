@@ -1,2 +1,4 @@
+Test = require './test_helper'
 Percolate = require '../src/percolate'
-console.error Percolate.compileInPlace(__dirname + '/../examples/batman.percolate')
+Percolate.compileInPlace(__dirname + '/../examples/batman.percolate')
+console.error "Done!"

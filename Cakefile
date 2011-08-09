@@ -6,15 +6,17 @@ option '-w', '--watch', 'continue to watch the files and rebuild them when they 
 option '-c', '--commit', 'operate on the git index instead of the working tree'
 option '-d', '--compare', 'compare to git refs (stat task only)'
 
+compileLanguage = (file, destination) ->
+  [child, promise] = muffin.exec("language -g #{file} > #{destination}")
+  promise.then(-> console.log "Compiled language #{file} successfully.").end()
+
 task 'build', 'compile percolate', (options) ->
   muffin.run
     files: './src/**/*'
     options: options
     map:
-      'src/(.+).coffee'       : (matches) -> muffin.compileScript(matches[0], "lib/#{matches[1]}.js", options)
-      'src/parsers/percolate.language' : (matches) -> 
-        [child, promise] = muffin.exec("language -g #{matches[0]} > lib/percolate_parser.js")
-        promise.then(-> console.log "Compiled language #{matches[0]} successfully.")
+      'src/(.+).coffee'           : (matches) -> muffin.compileScript(matches[0], "lib/#{matches[1]}.js", options)
+      'src/parsers/([\\w\\s]+).language' : (matches) -> compileLanguage(matches[0], "lib/parsers/#{matches[1]}.js")
 
 task 'test', 'compile shopify.js and the tests and run them on the command line', (options) ->
   runner = (require 'nodeunit').reporters.default
@@ -51,7 +53,7 @@ task 'dev', 'compile the examples/simple.html file when anything changes', (opti
 task 'stats', 'print source code stats', (options) ->
   muffin.statFiles(glob.globSync('./src/**/*').concat(glob.globSync('./lib/**/*')), options)
 
-task 'doc', 'autogenerate docco anotated source and node IDL files', (options) ->
+task 'doc', 'autogenerate docco anotated source', (options) ->
   muffin.run
     files: './src/**/*'
     options: options
