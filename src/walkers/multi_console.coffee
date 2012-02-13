@@ -5,7 +5,7 @@ module.exports = class MultiConsoleTransformation
     if root.children?
       # Do lower nodes first so the root's children are stable.
       @walk(node) for node in root.children
-      while @replace(root) 
+      while @replace(root)
         true
     true
 
@@ -13,7 +13,7 @@ module.exports = class MultiConsoleTransformation
     multi = new MultiConsoleNode(node.parent)
     multi.children = node.children.splice(start, count, multi)
     multi
-  
+
   replace: (root) ->
     start = 0
     count = 0
@@ -26,8 +26,8 @@ module.exports = class MultiConsoleTransformation
         count = 0
       else if count > 1
         break
-      
-    
+
+
     # If after all the children are done we still have some in the buffer, splice those bad boys.
     if count > 1
       @splice(root, start, count)

@@ -11,11 +11,11 @@ Heading =  AtxHeading / SetextHeading
 AtxHeading = AtxStart Space AtxInline+ AtxEnd
 // Hack to only allow up to 6 pounds
 AtxStart = "#" "#"? "#"? "#"? "#"? "#"?
-AtxInline = !AtxEnd Inline 
+AtxInline = !AtxEnd Inline
 AtxEnd = Sp "#"* Sp NewLine BlankLine*
 
 SetextHeading = SetextHeading1 / SetextHeading2
-SetextHeading1 = (!Endline Inline)+ NewLine ("===" "="*) NewLine BlankLine* 
+SetextHeading1 = (!Endline Inline)+ NewLine ("===" "="*) NewLine BlankLine*
 SetextHeading2 = (!Endline Inline)+ NewLine ("---" "-"*) NewLine BlankLine*
 
 BulletList = BulletListTight / BulletListLoose
@@ -37,19 +37,18 @@ BlockQuoteLine = ( (NonIndentSpace ">" " "? LineChar* NewLine)+ (!BlankLine Line
 BlockQuote = (BlockQuoteLine)+
 
 VerbatimChunk = BlankLine* (!BlankLine IndentedLine)+
-Verbatim = VerbatimChunk+ (BlankLine+ / EOF) 
+Verbatim = VerbatimChunk+ (BlankLine+ / EOF)
 
-Label = "[" &( (!"]" (Label / Inline))+) (Label / (!"]" Inline))+ "]"
+Label = "[" & ( (!"]" (Label / Inline))+) (Label / (!"]" Inline))+ "]"
 
 RefTitle = "\"" (!("\""? BlankLine) .)* "\""
-              / "'" (!("'"? BlankLine) .)* "'"
-              / "(" (!(")"? BlankLine) .)* ")"
-              / ""
+         / "'" (!("'"? BlankLine) .)* "'"
+         / "(" (!(")" BlankLine) .)* ")"
+         / "" & Endline
 
 RefSrc = NonSpaceChar+
-Reference = NonIndentSpace Label ":" Spnl RefSrc Spnl RefTitle BlankLine*
-
-HorizontalRule = NonIndentSpace ("***" "*"* /  "---" "-"* / "___" "_"*) NewLine BlankLine+
+Reference = NonIndentSpace Label ":" Sp RefSrc Sp RefTitle Sp BlankLine*
+HorizontalRule = NonIndentSpace (("***" "*"*) /  ("---" "-"*) / ("___" "_"*) / ("* * *" " *"*) / ("- - -" " -"*) / ("_ _ _" "_ "*)) NewLine BlankLine+
 
 Para = NonIndentSpace Inline+ NewLine BlankLine+
 
@@ -59,7 +58,7 @@ Inline = Str / Endline / UlOrStarLine / Space / Strong / Emph / Image / Link / C
 
 RawHtml = HtmlComment / HtmlTag
 
-EscapedChar = "\\" !NewLine . 
+EscapedChar = "\\" !NewLine .
 
 Entity = HexEntity / DecEntity / CharEntity
 
@@ -99,7 +98,7 @@ ReferenceLinkSingle = Label (Spnl "[]")?
 AutoLinkUrl = "<" AlphaNumeric+ "://" (!(NewLine / ">") .)+ ">"
 AutoLinkEmail = "<" (AlphaNumeric / [-_+])+ "@" (!(NewLine / ">") .)+ ">"
 
-BasicSource = (![()>] NonSpaceChar)+ ("(" Source ")")+ ""
+BasicSource = ( ![()>] NonSpaceChar )+ / ("(" Source ")")+ / ""
 AngleSource = "<" BasicSource ">"
 Source = AngleSource / BasicSource
 
@@ -301,7 +300,7 @@ HtmlComment = "<!--" (!"-->" .)* "-->"
 HtmlAttribute = (AlphaNumeric / [-_])+ Spnl ("=" Spnl HtmlAttributeValue)? Spnl
 
 HtmlAttributeValue = ("'" !(BlankLine / "'") . "'") / ("\"" !(BlankLine / "\"") . "\"") / (![\t >] .)+
-HtmlTag = "<" Spnl "/"? AlphaNumeric+ Spnl HtmlAttribute* "/"? Spnl ">" 
+HtmlTag = "<" Spnl "/"? AlphaNumeric+ Spnl HtmlAttribute* "/"? Spnl ">"
 
 // Line characters, endings and breaks
 InterBlockSpace = BlankLine*
@@ -311,10 +310,10 @@ NonEmptyLine = (!NewLine .)* NewLine
 LineChar = !NewLine .
 AlphaNumeric = [a-zA-Z0-9]
 Endline = LineBreak / TerminalEndline / NormalEndline
-NormalEndline = Space NewLine ! (BlankLine / ">" / AtxStart / (Line "===" + / "---" + NewLine))
+NormalEndline = Sp NewLine ! (BlankLine / ">" / AtxStart / (Line "===" + / "---" + NewLine))
 TerminalEndline = Sp NewLine EOF
-LineBreak = "  " NormalEndline 
-BlankLine = " " * NewLine
+LineBreak = "  " NormalEndline
+BlankLine = Sp NewLine
 NewLine = "\r\n" / "\n"
 Line = ((! NewLine .)*) NewLine / (.* EOF)
 EOF = ! . ""
@@ -323,7 +322,7 @@ SpecialChar = [*_`*&\[\]<!\\]
 NormalChar = !(SpecialChar / SpaceChar / NewLine) .
 
 // Whitespace
-NonIndentSpace = " " / "  " / "   "
+NonIndentSpace = "   " / "  " / " " / ""
 Indent = "    " / NonIndentSpace "\t"
 NonSpaceChar = !(SpaceChar / NewLine) .
 Sp = SpaceChar*

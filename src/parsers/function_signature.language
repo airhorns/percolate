@@ -10,7 +10,7 @@ ArgumentName = Identifier
 ArgumentType = BracketedType / NormalType
 NormalType = Identifier
 BracketedType = "function"? "(" (Sp BracketedValue ",")* Sp BracketedValue Sp ")"
-BracketedValue = Identifier / BracketedType 
+BracketedValue = Identifier / BracketedType
 
 UnicodeEscapeSequence =
     "u" HexDigit HexDigit HexDigit HexDigit

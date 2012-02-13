@@ -1,76 +1,52 @@
 # Library requires
 fs = require 'fs'
 path = require 'path'
-eco = require 'eco'
-hljs = require 'highlight.js'
 util = require 'util'
 
-# Local requires 
+# Local requires
 InstanceMethodWalker = require './instance_method'
-TableOfContentsWalker = require './table_of_contents'
-MultiConsoleTransformation = require './multi_console'
-ReferenceLinkTransformation = require './reference_link'
-
-FunctionBodyParser = require '../parsers/function_body'
-CSTParser = require '../../lib/parsers/percolate_parser'
-
-OutputTemplate = do ->
-  template = undefined
-  return -> 
-    unless template?
-      template = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'index.html.eco')).toString()
-    template
-
-class ReferenceTransformWalker extends InstanceMethodWalker
-  constructor: (@tableOfContents) ->
-
-Highlight = (str) ->
-  hljs.highlight('javascript', str).value
+CSTParser = require '../../lib/parsers/percolate'
 
 module.exports = class HtmlWalker extends InstanceMethodWalker
   @getString: (tree) ->
     return tree if typeof tree is 'string'
-    # Get the table of contents
-    tableOfContents = TableOfContentsWalker.getTableOfContents(tree)
-
-    # Use it to convert any references into `ReferenceNodes` instead of just inline `CodeNode`s
-    (new ReferenceLinkTransformation).walk(tree)
-    
-    # Also transform any successive console nodes into one
-    (new MultiConsoleTransformation).walk(tree)
-
-    walker = new HtmlWalker(tableOfContents)
+    walker = new HtmlWalker()
 
     tree.traverse(walker)
-    body = walker.output()
-    if tree.name == 'Base'
-      console.error tableOfContents
-      data = { 
-        title: tree.identifier(),
-        body,
-        tableOfContents: tableOfContents
-      }
-      eco.render OutputTemplate(), data
-    else
-      body
-  
-  constructor: (@tableOfContents) ->
+    walker.output()
+
+  constructor: () ->
     @buf = []
-    @inMulti = false
-  
-  for k in ['entered', 'exited']
-    do (k) =>
-      @::["#{k}Node"] = (node) ->
-        key = "#{k}#{node['name']}"
-        #console.error key
-        if @[key]?
-          @[key](node)
-        else
-          #console.error "Unrecognized node: #{node.name}" if k == 'entered'
-          true
+    @depth = 0
+
+  escape: (value) ->
+      return ('' + value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\x22/g, '&quot;')
+
+  enteredNode: (node) ->
+    key = "entered#{node['name']}"
+    @depth++
+    s = []
+    s.push ' ' for i in [0..@depth]
+    s.push key
+    #console.error s.join('')
+    if @[key]?
+      @[key](node)
+    else
+      #console.error "Unrecognized node: #{node.name}"
+      true
+
+  exitedNode: (node) ->
+    key = "exited#{node['name']}"
+    @depth--
+    if @[key]?
+      @[key](node)
 
   output: -> @buf.join('')
-  
+
   # When given a string, parses raw markdown string into a tree, and traverses that tree
   # When given a tree, traverses that tree.
   parseAndTraverse: (nodeOrString) ->
@@ -81,62 +57,50 @@ module.exports = class HtmlWalker extends InstanceMethodWalker
     node.traverse(@)
 
   # Percolate control structs
-  enteredBase: (node) -> 
-    @buf.push "<h1 class=\"base\" id=\"#{@idSafe(node.identifier())}\">"
-    @parseAndTraverse(node.documentName)
-    @buf.push "</h1>"
-    true
-  
-  enteredDocumentation: (node) ->
-    @buf.push "<h2 class=\"object\" id=\"#{@idSafe(node.identifier())}\">"
-    @parseAndTraverse(node.objectName)
-    @buf.push "</h2>"
-    true
+  for level, nodeName in {1: 'Base', 2: 'Documentation', 3: 'FunctionDocumentation', 4: 'TestCase'}
+    do (level, nodeName) ->
+      @::["entered#{nodeName}"] = (node) ->
+        @buf.push "<h#{level}>"
+        @parseAndTraverse(node.documentName || node.objectName || node.caseName)
+        @buf.push "</h#{level}>"
+        true
 
-  enteredFunctionDocumentation: (node) ->
-    @buf.push "<h3 class=\"function\" id=\"#{@idSafe(node.identifier())}\">"
-    @parseAndTraverse(node.objectName)
-    @buf.push "</h3>"
-    true
-
-  enteredTestCase: (node) ->
-    @buf.push "<h4>"
-    @parseAndTraverse(node.caseName)
-    @buf.push "</h4>"
-    true
-  
   enteredExampleTestCase: (node) -> @enteredTestCase(node)
 
-  enteredMultiConsole: (node) -> 
-    #@inMulti = false
-    @enteredConsole(node)
-    @inMulti = true
+  enteredConsole: (node) ->
+    @buf.push "<pre><code>"
     true
 
-  exitedMultiConsole: (node) -> 
-    @inMulti = false
-    @exitedConsole(node)
+  exitedConsole: (node) ->
+    @buf.push "</code></pre>"
 
-  enteredConsole: (node) -> 
-    if !@inMulti
-      @buf.push "<pre><code>"
-    true
-
-  exitedConsole: (node) -> 
-    if !@inMulti
-      @buf.push "</code></pre>" 
-  
   for k in ['Assertion', 'Show']
     do (k) =>
-      @::["entered#{k}"] = (node) -> 
-        @enteredConsole(node)
-        @buf.push "js> #{Highlight(FunctionBodyParser.parse(node.inputFunction))}\n#{Highlight(util.inspect(node.outputValue()))}\n"
-        @exitedConsole(node)
+      @::["entered#{k}"] = (node) ->
+        @buf.push node.innerText
         false
-  
+
   # Block wrappers
-  enteredPlain: (node) -> @buf.push '<p>'; true
-  exitedPlain: (node) -> @buf.push '</p>'
+  enteredPara: (node) ->
+    @buf.push '<p>'
+    @renderEndLines = true
+    true
+
+  exitedPara: (node) ->
+    @renderEndLines = false
+    @buf.push '</p>\n\n'
+
+  enteredVerbatim: (node) ->
+    @buf.push '<pre><code>'
+    @renderBlankLines = true
+    true
+  exitedVerbatim: (node) ->
+    @renderBlankLines = false
+    @buf.push '</pre></code>\n\n'
+
+  enteredHorizontalRule: (node) ->
+    @buf.push '<hr />\n\n'
+    false
 
   # Inline wrappers
   enteredEmph: (node) -> @buf.push '<em>'; true
@@ -146,17 +110,41 @@ module.exports = class HtmlWalker extends InstanceMethodWalker
   enteredCode: (node) -> @buf.push '<code>'; true
   exitedCode: (node) -> @buf.push '</code>'
 
+  enteredSymbol: (node) -> @buf.push @escape(node.innerText()); false
+
+  enteredExplicitLink: (node) ->
+    label = HtmlWalker.getString(node.children[0])
+    source = @escape(HtmlWalker.getString(node.children[4]))
+    title = HtmlWalker.getString(node.children[6])
+    @buf.push "<a href=\"#{source}\""
+    if title.length > 0
+      @buf.push "title=\"#{title}\""
+    @buf.push ">#{label}</a>"
+    false
+
   # Simple outputs
   enteredStr: (node) -> @buf.push node.innerText(); false
+  enteredEntity: @::enteredStr
+  enteredEscapedChar: (node) -> @buf.push node.innerText().slice(1); false
   enteredNonSpaceChar: (node) -> @buf.push node.innerText(); false
   enteredSpace: (node) -> @buf.push ' '; false
 
-  idSafe_rx = /[^\.\:a-zA-Z0-9_-]/g
-  idSafe: (str) ->
-    str.replace(idSafe_rx, '_')
+  enteredIndentedLine: (node) ->
+    indent = node.children[0].innerText().length
+    @buf.push(@escape(node.innerText().slice(indent)))
+    false
 
-  # Helper functions
-  wrapConsole: (str) -> 
-    """
-    #{str}
-    """
+  enteredBlankLine: (node) ->
+    if @renderBlankLines
+      @buf.push node.innerText()
+    false
+
+  enteredEndline: (node) ->
+    if @renderEndLines
+      @buf.push node.innerText()
+    false
+
+  # Reference
+  enteredReference: (node) -> false
+
+  enteredPlain: (node) -> console.error("Error! Entered plain. Text: \n\n #{node.innerText()}\n\n"); true

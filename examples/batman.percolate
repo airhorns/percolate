@@ -1,8 +1,8 @@
 # Batman
- 
+
 `Batman` is the coolest.
 
-    `Batman = (require('batman')).Batman`
+    Batman = require 'batman'
 
 ## Batman.Object
 
@@ -15,7 +15,7 @@ See `Batman.Object.prototype.set`
 ## Batman.Object.prototype
 
 `Batman.Object` is the heart of the `Batman` runtime. Instances and subclasses inherit all the `get`/`set` logic, the deep keypath resolution, the `accessor` computation logic, the `Observable` logic, the `event` logic, and more.
-    
+
     @setup -> @obj = new Batman.Object {foo: 'bar'}
 
 ### get(key: String)
