@@ -1,41 +1,29 @@
-fs = require 'fs'
-path = require 'path'
-helpers = require './helpers'
-walkers = require './walkers'
-parsers = require './parsers'
-nodes = require './nodes'
+qqunit = require 'qqunit'
+async = require 'async'
+eco = require 'eco'
+TestFile = require './test_file'
 
-Percolate =
+class Generator
+  sourceFiles: ['templates/index.html.eco', 'templates/jquery.min.js', 'templates/modernizr.min.js', 'templates/style.css']
+  constructor: (files) ->
+    throw new Error("Percolate needs some files to generate with!") unless files.length > 0
+    @files = (new TestFile(file) for file in files)
 
-  compile: (source, inputType = 'markdown', outputType = 'percolate') ->
-    # Figure out which parser to use depending on the type of the source provided.
-    parser = switch inputType
-      when 'markdown', 'percolate', 'text' then parsers.MarkdownParser
-      when 'coffee' then parsers.CoffeeScriptParser
-      else throw new Error "Unsupported input type #{type}! Supported types are: markdown, percolate, coffeescript."
+  generate: (callback) ->
+    async.parallel (file.require for file in @files), (err, results) =>
+      return callback(err) if err
+      qqunit.Runner.run [], (stats) =>
+        @render (err, output) =>
+          callback(err, stats, output)
 
-    walker = switch outputType
-      when 'percolate' then walkers.PercolateHtmlWalker
-      when 'html' then walkers.HtmlWalker
-      else throw new Error "Unsupported output type #{type}! Supported types are: percolate, html."
+  render: (callback) ->
+    main = (file.output() for file in @files).join('\n')
+    async.map @sourceFiles, fs.readFile, (err, [template, jquery_source, modernizr_source, css_source]) =>
+      unless err
+        output = eco.render template, {main, jquery_source, modernizr_source, css_source}
+      callback(err, output)
 
-    # Get the internal representation from the parser.
-    percolateTree = parser.getPercolateTree(source)
-
-    # Compile it.
-    walker.getString(percolateTree)
-
-  compileFromFile: (sourceFileName, inputType = null, outputType = 'percolate') ->
-    source = fs.readFileSync(sourceFileName).toString()
-    @compile(source, inputType || path.extname(sourceFileName).slice(1), outputType)
-
-  compileInPlace: (sourceFileName) ->
-    output = @compileFromFile(sourceFileName)
-
-    (outputFileName = sourceFileName.split('.')).pop()
-    outputFileName.push('html')
-    outputFileName = outputFileName.join('.')
-
-    fs.writeFileSync(outputFileName, output)
-
-module.exports = helpers.extend Percolate, helpers, walkers, parsers, nodes
+module.exports =
+  Generator: Generator
+  generate: (files..., callback) ->
+    (new Generator(files)).generate(callback)
