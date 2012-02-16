@@ -9,7 +9,7 @@ block =
   percolate_code: /^ *!!! *(\w+)? *\n([^\0]+?)\s*!!! *(?:\n+|$)/
   hr: /^( *[\-*_]){3,} *(?:\n+|$)/
   heading: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/
-  lheading: /^([^\n]+)\n *(=|-){3,} *\n*/
+  lheading: /^ *((?:=|-){1,6}) *([^\n]+?) *(?:=|-)* *(?:\n+|$)/
   blockquote: /^( *>[^\n]+(\n[^\n]+)*\n*)+/
   list: /^( *)([*+-]|\d+\.) [^\0]+?(?:\n{2,}(?! )|\s*$)(?!\1bullet)\n*/
   html: /^ *(?:comment|closed|closing) *(?:\n{2,}|\s*$)/
@@ -87,14 +87,16 @@ block.token = (src, tokens, top) ->
         type: "heading"
         depth: cap[1].length
         text: cap[2]
+        searchable: true
 
       continue
     if cap = block.lheading.exec(src)
       src = src.substring(cap[0].length)
       tokens.push
         type: "heading"
-        depth: (if cap[2] is "=" then 1 else 2)
-        text: cap[1]
+        depth: cap[1].length
+        text: cap[2]
+        searchable: false
 
       continue
     if cap = block.hr.exec(src)
