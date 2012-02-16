@@ -1,8 +1,11 @@
 CoffeeScript = require 'coffee-script'
+CoffeeScript.Nodes = require 'coffee-script/lib/nodes'
 True = CoffeeScript.nodes "true"
+Empty = CoffeeScript.nodes "{}"
+global.show = ->
 
 module.exports = class TestBlock
-  assertionNames: ['ok', 'equal', 'equals', 'deepEqual', 'strictEqual']
+  extractFunctionNames: ['ok', 'equal', 'equals', 'deepEqual', 'strictEqual', 'show']
 
   @for: (text, lang) ->
     klass = switch lang
@@ -32,15 +35,21 @@ class CoffeeTestBlock extends TestBlock
       nodeType = child.constructor.name
       if nodeType is 'Call'
         functionName = child.variable?.base?.value
-        if functionName && ~@assertionNames.indexOf(functionName)
+        if functionName && ~@extractFunctionNames.indexOf(functionName)
           @[functionName](child)
       true
 
     for statement in @statements
-      for k in ['in', 'out']
-        statement[k] = statement[k].compile(@defaultCoffeeOptions)
+      for k in ['in', 'out', 'message'] when statement[k]?
+        do (k, statement) =>
+          __super__ = statement[k].compile
+          statement[k].compile = ->
+            return statement[k] = __super__.apply(@, arguments)
+    @coffeeNodes.compile @defaultCoffeeOptions
+
+    for statement in @statements
       if statement.message
-        statement.out = "// #{statement.message.compile(@defaultCoffeeOptions).slice(1, -1)} \n #{statement.out}"
+        statement.out = "// #{statement.message.slice(1, -1)} \n #{statement.out}"
       delete statement.message
 
   ok: (call) ->
@@ -56,6 +65,11 @@ class CoffeeTestBlock extends TestBlock
   equals: @::equal
   deepEqual: @::equal
   strictEqual: @::equal
+
+  show: (call) ->
+    @statements.push
+      in: call.args[0]
+      out: Empty
 
 class JavaScriptTestBlock extends TestBlock
     constructor: (text) ->
