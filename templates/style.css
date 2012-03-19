@@ -145,6 +145,10 @@ td { vertical-align: top; }
 .highlight .il { color: #2AA198 } /* Literal.Number.Integer.Long */
 
 
+pre { margin: 0px; }
+.in .highlight pre:before {
+  content: '>>> ';
+}
 
 /* =============================================================================
    Media Queries
@@ -171,7 +175,7 @@ td { vertical-align: top; }
 /* =============================================================================
    Print Styles
    ========================================================================== */
- 
+
 @media print {
   * { background: transparent !important; color: black !important; box-shadow:none !important; text-shadow: none !important; filter:none !important; -ms-filter: none !important; } /* Black prints faster: h5bp.com/s */
   a, a:visited { text-decoration: underline; }
