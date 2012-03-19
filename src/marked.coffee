@@ -67,10 +67,9 @@ block.token = (src, tokens, top) ->
     if cap = block.percolate_code.exec(src)
       src = src.substring(cap[0].length)
       tokens.push
-        type: "code"
+        type: "percolate_code"
         lang: cap[1]
         text: cap[2]
-        percolate: true
       continue
 
     if cap = block.gfm_code.exec(src)
@@ -180,6 +179,7 @@ inline =
   code: /^(`+)([^\0]*?[^`])\1(?!`)/
   br: /^ {2,}\n(?!\s*$)/
   text: /^[^\0]+?(?=[\\<!\[_*`]|\w+:\/\/| {2,}\n|$)/
+  onCode: (x) -> x
 
 inline.lexer = (src) ->
   out = ""
@@ -245,7 +245,7 @@ inline.lexer = (src) ->
       continue
     if cap = inline.code.exec(src)
       src = src.substring(cap[0].length)
-      out += "<code>" + escape(cap[2], true) + "</code>"
+      out += "<code>" + inline.onCode(escape(cap[2], true)) + "</code>"
       continue
     if cap = inline.br.exec(src)
       src = src.substring(cap[0].length)
@@ -275,9 +275,11 @@ tok = ->
     when "hr"
       "<hr>\n"
     when "heading"
-      "<h" + token.depth + ">" + inline.lexer(token.text) + "</h" + token.depth + ">\n"
+      "<h" + token.depth + (if token.id then " id=\"#{token.id}\"" else "") + ">" + inline.lexer(token.text) + "</h" + token.depth + ">\n"
     when "code"
       "<pre><code" + (if token.lang then " class=\"" + token.lang + "\"" else "") + ">" + (if token.escaped then token.text else escape(token.text, true)) + "</code></pre>\n"
+    when "percolate_code"
+      token.text
     when "blockquote_start"
       body = ""
       body += tok()  while next().type isnt "blockquote_end"
@@ -334,6 +336,7 @@ mangle = (text) ->
 marked = (src) ->
   parse block.lexer(src)
 
+marked.inline = inline
 marked.parser = parse
 marked.lexer = block.lexer
 marked.parse = marked
