@@ -2,7 +2,7 @@
   "author": "Harry Brundage <harry.brundage@jadedpixel.com> (http://harry.me/)",
   "name": "percolate",
   "description": "An executable documentation generator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "https://hornairs.github.com/percolate",
   "repository": {
     "type": "git",
