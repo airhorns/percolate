@@ -1,4 +1,8 @@
-<h{{depth}} class="{{class}}"><a href="#{{id}}">{{text}}</a></{{depth}}>
-{{#children}}
-  {{> table_of_contents_node }}
-{{/children}}
+<a href="#{{id}}" class="{{class}}">{{text}}</a>
+{{#hasChildren}}
+<ul>
+  {{#children}}
+  <li>{{> table_of_contents_node }}</li>
+  {{/children}}
+</ul>
+{{/hasChildren}}

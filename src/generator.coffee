@@ -17,8 +17,11 @@ class Generator
     async.parallel (file.require for file in @files), (err, results) =>
       return callback(err) if err
       qqunit.Runner.run [], (stats) =>
-        @render (err, output) =>
-          callback(err, stats, output)
+        unless stats.failed > 0
+          @render (err, output) =>
+            callback(err, stats, output)
+        else
+          callback(err, stats, "")
 
   render: (callback) ->
     templateFiles = @sourceFiles.map (file) -> path.join(__dirname, '..', file)

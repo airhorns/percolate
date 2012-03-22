@@ -53,7 +53,8 @@ module.exports = class TestFile
       for token, i in @tokens
         if token.type in ['percolate_code', 'code']
           currentLanguage = token.lang || 'coffeescript'
-          block = TestBlock.for(token.text, currentLanguage)
+          evaluate = token.type == 'percolate_code'
+          block = TestBlock.for(token.text, currentLanguage, evaluate)
           block.token = token
           blocks.push block
     catch e

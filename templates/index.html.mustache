@@ -24,9 +24,11 @@
 
 </header>
 <div role="sidebar">
-  {{#table_of_contents}}
-    {{> table_of_contents_node }}
-  {{/table_of_contents}}
+  <ul id="table_of_contents">
+    {{#table_of_contents}}
+      <li>{{> table_of_contents_node }}</li>
+    {{/table_of_contents}}
+  </ul>
 </div>
 <div role="main">
   {{& main }}

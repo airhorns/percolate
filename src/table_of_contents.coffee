@@ -10,13 +10,25 @@ class TableOfContentsNode
     .replace(/(-+)$/g, '')
     .replace(/^(-+)/g, '')
 
-  @extractSignature: (text) -> text.split(':')[0].trim()
+  @_functionSignature       = /\w+\(.*\)/i
+  @_classfunctionSignature  = /@\w+\(.*\)/i
+  @_typeInformation         = /\s*:\s*(?:\[\s*\w+\s*\]|\w+)/ig
+  @_defaultArgumentValues   = /(\w+)\s*\=\s*\w+/ig
+
+  @extractSignature: (text) ->
+    result = text.replace(@_typeInformation, '')
+    if @_functionSignature.test(text)
+      result.replace(@_defaultArgumentValues, '$1')
+    else
+      result
 
   parent: null
   class: ""
   constructor: (@depth, @text, @searchable) ->
     @children = []
     @_extractSignature()
+
+  hasChildren: -> @children.length > 0
 
   addChild: (child) ->
     @_clearMemos()
@@ -49,7 +61,6 @@ class TableOfContentsNode
   autolink: (linkContents) ->
     signature = @constructor.extractSignature(linkContents)
     handle = @constructor.handelize(signature)
-    console.log "Checking #{signature}, #{handle}"
     index = @index()
     rootIndex = @root().index()
     id = index[signature] || index[handle] || rootIndex[signature] || rootIndex[handle]
@@ -60,7 +71,9 @@ class TableOfContentsNode
       linkContents
 
   _extractSignature: ->
+    old = @text
     @text = @constructor.extractSignature(@text)
+    #console.warn "#{old} -> #{@text}"
     handle = @constructor.handelize(@text)
     @class =
       if @searchable
@@ -70,7 +83,9 @@ class TableOfContentsNode
           when 2
             "class"
           when 3
-            if @text.match /^.+\(.*\).*$/
+            if @text.match @constructor._classFunctionSignature
+              "class-function"
+            else if @text.match @constructor._functionSignature
               "function"
             else
               "property"

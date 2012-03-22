@@ -22,14 +22,14 @@ warnWithLines = (text) ->
 module.exports = class TestBlock
   extractFunctionNames: ['ok', 'equal', 'equals', 'deepEqual', 'strictEqual', 'show', 'test', 'asyncTest']
 
-  @for: (text, lang) ->
+  @for: (text, lang, evaluate) ->
     klass = switch lang
       when 'coffee', 'coffeescript' then CoffeeTestBlock
       when 'js', 'javascript' then JavaScriptTestBlock
       else DefaultTestBlock
-    new klass(text)
+    new klass(text, evaluate)
 
-  constructor: (@text) ->
+  constructor: (@text, @evaluate = true) ->
     @statements = []
     @parse()
 
@@ -45,7 +45,7 @@ class CoffeeTestBlock extends TestBlock
   constructor: (text) ->
     super
     @script = CoffeeScript.compile text
-    @eval(@script)
+    @eval(@script) if @evaluate
 
   parse: ->
     try
@@ -114,4 +114,4 @@ class JavaScriptTestBlock extends TestBlock
     constructor: (text) ->
       super
       @script = "!function(){#{text}}()"
-      @eval(@script)
+      @eval(@script) if @evaluate
