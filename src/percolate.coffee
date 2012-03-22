@@ -4,6 +4,6 @@ Environment = require './environment'
 module.exports = {
   Generator
   Environment
-  generate: (files..., callback) ->
-    (new Generator(files)).generate(callback)
+  generate: (projectDirectory, files..., callback) ->
+    (new Generator(projectDirectory, files)).generate(callback)
 }

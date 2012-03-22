@@ -1,42 +1,50 @@
 tag = ->
-  aTag = "(?!(?:" + "a|em|strong|small|s|cite|q|dfn|abbr|data|time|code" + "|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo" + "|span|br|wbr|ins|del|img)\\b)\\w+"
-  aTag
-
+  atag = "(?!(?:" + "a|em|strong|small|s|cite|q|dfn|abbr|data|time|code" + "|var|samp|kbd|sub|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo" + "|span|br|wbr|ins|del|img)\\b)\\w+"
+  atag
+replace = (regex) ->
+  regex = regex.source
+  self = (name, val) ->
+    return new RegExp(regex)  unless name
+    regex = regex.replace(name, val.source or val)
+    self
+noop = ->
 block =
   newline: /^\n+/
-  code: /^ {4,}[^\n]*(?:\n {4,}[^\n]*|\n)*(?:\n+|$)/
-  gfm_code: /^ *``` *(\w+)? *\n([^\0]+?)\s*``` *(?:\n+|$)/
+  code: /^( {4}[^\n]+\n*)+/
+  fences: noop
   percolate_code: /^ *!!! *(\w+)? *\n([^\0]+?)\s*!!! *(?:\n+|$)/
   hr: /^( *[\-*_]){3,} *(?:\n+|$)/
   heading: /^ *(#{1,6}) *([^\n]+?) *#* *(?:\n+|$)/
   lheading: /^ *((?:=|-){1,6}) *([^\n]+?) *(?:=|-)* *(?:\n+|$)/
   blockquote: /^( *>[^\n]+(\n[^\n]+)*\n*)+/
-  list: /^( *)([*+-]|\d+\.) [^\0]+?(?:\n{2,}(?! )|\s*$)(?!\1bullet)\n*/
+  list: /^( *)([*+-]|\d+\.) [^\0]+?(?:\n{2,}(?! )(?!\1bullet)\n*|\s*$)/
   html: /^ *(?:comment|closed|closing) *(?:\n{2,}|\s*$)/
   def: /^ *\[([^\]]+)\]: *([^\s]+)(?: +["(]([^\n]+)[")])? *(?:\n+|$)/
   paragraph: /^([^\n]+\n?(?!body))+\n*/
   text: /^[^\n]+/
 
-block.list = do ->
-  list = block.list.source
-  list = list.replace("bullet", /(?:[*+-](?!(?: *[-*]){2,})|\d+\.)/.source)
-  new RegExp(list)
-
-block.html = do ->
-  html = block.html.source
-  html = html.replace("comment", /<!--[^\0]*?-->/.source).replace("closed", /<(tag)[^\0]+?<\/\1>/.source).replace("closing", /<tag(?!:\/|@)\b(?:"[^"]*"|'[^']*'|[^'">])*?>/.source).replace(/tag/g, tag())
-  new RegExp(html)
-
-block.paragraph = do ->
+block.list = replace(block.list)("bullet", /(?:[*+-](?!(?: *[-*]){2,})|\d+\.)/)()
+block.html = replace(block.html)("comment", /<!--[^\0]*?-->/)("closed", /<(tag)[^\0]+?<\/\1>/)("closing", /<tag(?!:\/|@)\b(?:"[^"]*"|'[^']*'|[^'">])*?>/)(/tag/g, tag())()
+block.paragraph = (->
   paragraph = block.paragraph.source
   body = []
-  (push = (rule) ->
+  push = (rule) ->
     rule = (if block[rule] then block[rule].source else rule)
     body.push rule.replace(/(^|[^\[])\^/g, "$1")
     push
-  )("gfm_code")("hr")("heading")("lheading")("blockquote")("<" + tag()) "def"
+  push("hr")("heading")("lheading")("blockquote")("<" + tag())("def")
   new RegExp(paragraph.replace("body", body.join("|")))
+)()
 
+block.normal =
+  fences: block.fences
+  paragraph: block.paragraph
+
+block.gfm =
+  fences: /^ *``` *(\w+)? *\n([^\0]+?)\s*``` *(?:\n+|$)/
+  paragraph: /^/
+
+block.gfm.paragraph = replace(block.paragraph)("(?!", "(?!" + block.gfm.fences.source.replace(/(^|[^\[])\^/g, "$1") + "|")()
 block.lexer = (src) ->
   tokens = []
   tokens.links = {}
@@ -56,14 +64,7 @@ block.token = (src, tokens, top) ->
     if cap = block.newline.exec(src)
       src = src.substring(cap[0].length)
       tokens.push type: "space"  if cap[0].length > 1
-    if cap = block.code.exec(src)
-      src = src.substring(cap[0].length)
-      cap = cap[0].replace(/^ {4}/g, "")
-      tokens.push
-        type: "code"
-        text: cap.replace(/\n+$/, "")
 
-      continue
     if cap = block.percolate_code.exec(src)
       src = src.substring(cap[0].length)
       tokens.push
@@ -72,7 +73,15 @@ block.token = (src, tokens, top) ->
         text: cap[2]
       continue
 
-    if cap = block.gfm_code.exec(src)
+    if cap = block.code.exec(src)
+      src = src.substring(cap[0].length)
+      cap = cap[0].replace(/^ {4}/g, "")
+      tokens.push
+        type: "code"
+        text: (if not options.pedantic then cap.replace(/\n+$/, "") else cap)
+
+      continue
+    if cap = block.fences.exec(src)
       src = src.substring(cap[0].length)
       tokens.push
         type: "code"
@@ -115,17 +124,17 @@ block.token = (src, tokens, top) ->
         type: "list_start"
         ordered: isFinite(cap[2])
 
-      cap = cap[0].match(/^( *)([*+-]|\d+\.)[^\n]*(?:\n(?!\1(?:[*+-]|\d+\.))[^\n]*)*/g)
+      cap = cap[0].match(/^( *)([*+-]|\d+\.) [^\n]*(?:\n(?!\1(?:[*+-]|\d+\.) )[^\n]*)*/g)
       next = false
       l = cap.length
       i = 0
       while i < l
         item = cap[i]
         space = item.length
-        item = item.replace(/^ *([*+-]|\d+\.) */, "")
+        item = item.replace(/^ *([*+-]|\d+\.) +/, "")
         if ~item.indexOf("\n ")
           space -= item.length
-          item = item.replace(new RegExp("^ {1," + space + "}", "gm"), "")
+          item = (if not options.pedantic then item.replace(new RegExp("^ {1," + space + "}", "gm"), "") else item.replace(/^ {1,4}/g, ""))
         loose = next or /\n\n(?!\s*$)/.test(item)
         if i isnt l - 1
           next = item[item.length - 1] is "\n"
@@ -140,6 +149,7 @@ block.token = (src, tokens, top) ->
       src = src.substring(cap[0].length)
       tokens.push
         type: "html"
+        pre: cap[1] is "pre"
         text: cap[0]
 
       continue
@@ -169,17 +179,35 @@ block.token = (src, tokens, top) ->
 inline =
   escape: /^\\([\\`*{}\[\]()#+\-.!_>])/
   autolink: /^<([^ >]+(@|:\/)[^ >]+)>/
-  gfm_autolink: /^(\w+:\/\/[^\s]+[^.,:;"')\]\s])/
+  url: noop
   tag: /^<!--[^\0]*?-->|^<\/?\w+(?:"[^"]*"|'[^']*'|[^'">])*?>/
-  link: /^!?\[((?:\[[^\]]*\]|[^\[\]]|\[|\](?=[^[\]]*\]))*)\]\(([^\)]*)\)/
-  reflink: /^!?\[((?:\[[^\]]*\]|[^\[\]]|\[|\](?=[^[\]]*\]))*)\]\s*\[([^\]]*)\]/
+  link: /^!?\[(inside)\]\(href\)/
+  reflink: /^!?\[(inside)\]\s*\[([^\]]*)\]/
   nolink: /^!?\[((?:\[[^\]]*\]|[^\[\]])*)\]/
   strong: /^__([^\0]+?)__(?!_)|^\*\*([^\0]+?)\*\*(?!\*)/
-  em: /^\b_([^\0]+?)_\b|^\*((?:\*\*|[^\0])+?)\*(?!\*)/
+  em: /^\b_((?:__|[^\0])+?)_\b|^\*((?:\*\*|[^\0])+?)\*(?!\*)/
   code: /^(`+)([^\0]*?[^`])\1(?!`)/
   br: /^ {2,}\n(?!\s*$)/
-  text: /^[^\0]+?(?=[\\<!\[_*`]|\w+:\/\/| {2,}\n|$)/
+  text: /^[^\0]+?(?=[\\<!\[_*`]| {2,}\n|$)/
   onCode: (x) -> x
+
+inline._linkInside = /(?:\[[^\]]*\]|[^\]]|\](?=[^\[]*\]))*/
+inline._linkHref = /\s*<?([^\s]*?)>?(?:\s+['"]([^\0]*?)['"])?\s*/
+inline.link = replace(inline.link)("inside", inline._linkInside)("href", inline._linkHref)()
+inline.reflink = replace(inline.reflink)("inside", inline._linkInside)()
+inline.normal =
+  url: inline.url
+  strong: inline.strong
+  em: inline.em
+  text: inline.text
+
+inline.pedantic =
+  strong: /^__(?=\S)([^\0]*?\S)__(?!_)|^\*\*(?=\S)([^\0]*?\S)\*\*(?!\*)/
+  em: /^_(?=\S)([^\0]*?\S)_(?!_)|^\*(?=\S)([^\0]*?\S)\*(?!\*)/
+
+inline.gfm =
+  url: /^(https?:\/\/[^\s]+[^.,:;"')\]\s])/
+  text: /^[^\0]+?(?=[\\<!\[_*`]|https?:\/\/| {2,}\n|$)/
 
 inline.lexer = (src) ->
   out = ""
@@ -203,7 +231,7 @@ inline.lexer = (src) ->
         href = text
       out += "<a href=\"" + href + "\">" + text + "</a>"
       continue
-    if cap = inline.gfm_autolink.exec(src)
+    if cap = inline.url.exec(src)
       src = src.substring(cap[0].length)
       text = escape(cap[1])
       href = text
@@ -211,18 +239,13 @@ inline.lexer = (src) ->
       continue
     if cap = inline.tag.exec(src)
       src = src.substring(cap[0].length)
-      out += cap[0]
+      out += (if options.sanitize then escape(cap[0]) else cap[0])
       continue
     if cap = inline.link.exec(src)
       src = src.substring(cap[0].length)
-      text = /^\s*<?([^\s]*?)>?(?:\s+"([^\n]+)")?\s*$/.exec(cap[2])
-      unless text
-        out += cap[0][0]
-        src = cap[0].substring(1) + src
-        continue
       out += outputLink(cap,
-        href: text[1]
-        title: text[2]
+        href: cap[2]
+        title: cap[3]
       )
       continue
     if (cap = inline.reflink.exec(src)) or (cap = inline.nolink.exec(src))
@@ -276,10 +299,8 @@ tok = ->
       "<hr>\n"
     when "heading"
       "<h" + token.depth + (if token.id then " id=\"#{token.id}\"" else "") + ">" + inline.lexer(token.text) + "</h" + token.depth + ">\n"
-    when "code"
+    when "code", "percolate_code"
       "<pre><code" + (if token.lang then " class=\"" + token.lang + "\"" else "") + ">" + (if token.escaped then token.text else escape(token.text, true)) + "</code></pre>\n"
-    when "percolate_code"
-      token.text
     when "blockquote_start"
       body = ""
       body += tok()  while next().type isnt "blockquote_end"
@@ -298,7 +319,8 @@ tok = ->
       body += tok()  while next().type isnt "list_item_end"
       "<li>" + body + "</li>\n"
     when "html"
-      inline.lexer token.text
+      return inline.lexer(token.text)  if options.sanitize
+      (if not token.pre and not options.pedantic then inline.lexer(token.text) else token.text)
     when "paragraph"
       "<p>" + inline.lexer(token.text) + "</p>\n"
     when "text"
@@ -333,11 +355,55 @@ mangle = (text) ->
     i++
   out
 
-marked = (src) ->
+noop.exec = noop
+marked = (src, opt) ->
+  setOptions opt
   parse block.lexer(src)
 
+options = undefined
+defaults = undefined
+setOptions = (opt) ->
+  opt = defaults  unless opt
+  return  if options is opt
+  options = opt
+  if options.gfm
+    block.fences = block.gfm.fences
+    block.paragraph = block.gfm.paragraph
+    inline.text = inline.gfm.text
+    inline.url = inline.gfm.url
+  else
+    block.fences = block.normal.fences
+    block.paragraph = block.normal.paragraph
+    inline.text = inline.normal.text
+    inline.url = inline.normal.url
+  if options.pedantic
+    inline.em = inline.pedantic.em
+    inline.strong = inline.pedantic.strong
+  else
+    inline.em = inline.normal.em
+    inline.strong = inline.normal.strong
+
 marked.inline = inline
-marked.parser = parse
-marked.lexer = block.lexer
+
+marked.options = marked.setOptions = (opt) ->
+  defaults = opt
+  setOptions opt
+
+marked.options
+  gfm: true
+  pedantic: false
+  sanitize: false
+
+marked.parser = (src, opt) ->
+  setOptions opt
+  parse src
+
+marked.lexer = (src, opt) ->
+  setOptions opt
+  block.lexer src
+
 marked.parse = marked
-module.exports = marked
+if typeof module isnt "undefined"
+  module.exports = marked
+else
+  @marked = marked

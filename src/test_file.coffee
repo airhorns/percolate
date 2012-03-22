@@ -9,7 +9,7 @@ TestBlock = require './test_block'
 {TableOfContents, TableOfContentsNode} = require './table_of_contents'
 
 module.exports = class TestFile
-  codeBlockTemplate: hogan.compile(fs.readFileSync(path.join(__dirname, '..', 'templates', 'code_block.html.mustache')).toString())
+  codeBlockTemplate: false
   _required: false
   constructor: (@filePath) ->
 

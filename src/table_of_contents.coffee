@@ -12,7 +12,7 @@ class TableOfContentsNode
 
   @_functionSignature       = /\w+\(.*\)/i
   @_classfunctionSignature  = /@\w+\(.*\)/i
-  @_typeInformation         = /\s*:\s*(?:\[\s*\w+\s*\]|\w+)/ig
+  @_typeInformation         = /\s*:\s*(?:\[\s*(?:\w|\|)+\s*\]|\w+)/ig
   @_defaultArgumentValues   = /(\w+)\s*\=\s*\w+/ig
 
   @extractSignature: (text) ->
