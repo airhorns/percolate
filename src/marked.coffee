@@ -299,7 +299,9 @@ tok = ->
       "<hr>\n"
     when "heading"
       "<h" + token.depth + (if token.id then " id=\"#{token.id}\"" else "") + ">" + inline.lexer(token.text) + "</h" + token.depth + ">\n"
-    when "code", "percolate_code"
+    when "percolate_code"
+      token.text
+    when "code"
       "<pre><code" + (if token.lang then " class=\"" + token.lang + "\"" else "") + ">" + (if token.escaped then token.text else escape(token.text, true)) + "</code></pre>\n"
     when "blockquote_start"
       body = ""
