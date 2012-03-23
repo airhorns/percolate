@@ -25,14 +25,14 @@ class Generator
 
   render: (callback) ->
     defaultTemplateFiles = @sourceFiles.map (file) -> path.join(__dirname, '..', file)
-    localTempalateFiles = @sourceFiles.map (file) -> path.join(@projectDirectory, file)
+    localTemplateFiles = @sourceFiles.map (file) => path.join(@projectDirectory, file)
 
-    async.map localTempalateFiles, ((file, callback) -> fs.stat(file, (e, stats) -> callback(null, stats && stats.isFile()))), (err, results) =>
+    async.map localTemplateFiles, ((file, callback) -> fs.stat(file, (e, stats) -> callback(null, stats && stats.isFile()))), (err, results) =>
       return callback(err) if err
 
       templateFiles = for result, i in results
         if result
-          localTempalateFiles[i]
+          localTemplateFiles[i]
         else
           defaultTemplateFiles[i]
 
