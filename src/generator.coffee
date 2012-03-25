@@ -13,15 +13,19 @@ class Generator
     throw new Error("Percolate needs some files to generate with!") unless files.length > 0
     @files = (new TestFile(file) for file in files)
 
-  generate: (callback) ->
+  test: (callback) ->
     async.parallel (file.require for file in @files), (err, results) =>
       return callback(err) if err
       qqunit.Runner.run [], (stats) =>
-        unless stats.failed > 0
-          @render (err, output) =>
-            callback(err, stats, output)
-        else
-          callback(err, stats, "")
+        callback(null, stats)
+
+  generate: (callback) ->
+    @test (err, stats) ->
+      unless stats.failed > 0
+        @render (err, output) =>
+          callback(err, stats, output)
+      else
+        callback(err, stats, "")
 
   render: (callback) ->
     defaultTemplateFiles = @sourceFiles.map (file) -> path.join(__dirname, '..', file)

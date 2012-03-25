@@ -6,4 +6,6 @@ module.exports = {
   Environment
   generate: (projectDirectory, files..., callback) ->
     (new Generator(projectDirectory, files)).generate(callback)
+  test: (projectDirectory, files..., callback) ->
+    (new Generator(projectDirectory, files)).test(callback)
 }
