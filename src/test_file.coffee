@@ -4,7 +4,6 @@ async = require 'async'
 CoffeeScript = require 'coffee-script'
 marked = require './marked'
 pygments = require 'pygments'
-hogan = require 'hogan'
 TestBlock = require './test_block'
 {TableOfContents, TableOfContentsNode} = require './table_of_contents'
 

@@ -1,7 +1,7 @@
 require './environment'
 qqunit = require 'qqunit'
 async = require 'async'
-hogan = require 'hogan'
+hogan = require 'hogan.js'
 fs = require 'fs'
 path = require 'path'
 TestFile = require './test_file'
@@ -20,7 +20,7 @@ class Generator
         callback(null, stats)
 
   generate: (callback) ->
-    @test (err, stats) ->
+    @test (err, stats) =>
       unless stats.failed > 0
         @render (err, output) =>
           callback(err, stats, output)
