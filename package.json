@@ -9,7 +9,7 @@
     "url": "git://github.com/hornairs/percolate.git"
   },
   "engines": {
-    "node": "0.6.x"
+    "node": "0.4 || 0.6"
   },
   "dependencies": {
     "coffee-script": "1.1.3",
