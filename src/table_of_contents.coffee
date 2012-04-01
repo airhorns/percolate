@@ -65,7 +65,7 @@ class TableOfContentsNode
     rootIndex = @root().index()
     id = index[signature] || index[handle] || rootIndex[signature] || rootIndex[handle]
     if id?
-      console.log "#{linkContents} -> #{id}"
+      #console.log "#{linkContents} -> #{id}"
       "<a href=\"#{id}\">#{linkContents}</a>"
     else
       linkContents
