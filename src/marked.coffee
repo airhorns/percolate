@@ -52,7 +52,7 @@ block.lexer = (src) ->
   block.token src, tokens, true
 
 block.token = (src, tokens, top) ->
-  src = src.replace(/^ +$/g, "")
+  src = src.replace(/^ +$/gm, "")
   next = undefined
   loose = undefined
   cap = undefined
@@ -75,7 +75,7 @@ block.token = (src, tokens, top) ->
 
     if cap = block.code.exec(src)
       src = src.substring(cap[0].length)
-      cap = cap[0].replace(/^ {4}/g, "")
+      cap = cap[0].replace(/^ {4}/gm, "")
       tokens.push
         type: "code"
         text: (if not options.pedantic then cap.replace(/\n+$/, "") else cap)
@@ -114,7 +114,7 @@ block.token = (src, tokens, top) ->
     if cap = block.blockquote.exec(src)
       src = src.substring(cap[0].length)
       tokens.push type: "blockquote_start"
-      cap = cap[0].replace(/^ *> ?/g, "")
+      cap = cap[0].replace(/^ *> ?/gm, "")
       block.token cap, tokens, top
       tokens.push type: "blockquote_end"
       continue
@@ -123,8 +123,7 @@ block.token = (src, tokens, top) ->
       tokens.push
         type: "list_start"
         ordered: isFinite(cap[2])
-
-      cap = cap[0].match(/^( *)([*+-]|\d+\.) [^\n]*(?:\n(?!\1(?:[*+-]|\d+\.) )[^\n]*)*/g)
+      cap = cap[0].match(/^( *)([*+-]|\d+\.) [^\n]*(?:\n(?!\1(?:[*+-]|\d+\.) )[^\n]*)*/gm)
       next = false
       l = cap.length
       i = 0
@@ -134,7 +133,7 @@ block.token = (src, tokens, top) ->
         item = item.replace(/^ *([*+-]|\d+\.) +/, "")
         if ~item.indexOf("\n ")
           space -= item.length
-          item = (if not options.pedantic then item.replace(new RegExp("^ {1," + space + "}", "gm"), "") else item.replace(/^ {1,4}/g, ""))
+          item = (if not options.pedantic then item.replace(new RegExp("^ {1," + space + "}", "gm"), "") else item.replace(/^ {1,4}/gm, ""))
         loose = next or /\n\n(?!\s*$)/.test(item)
         if i isnt l - 1
           next = item[item.length - 1] is "\n"
