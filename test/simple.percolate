@@ -1,0 +1,13 @@
+### a + b
+
+The `+` operator is used for adding numbers.
+
+!!!
+test 'two positive numbers can be added', ->
+  equal 1 + 1, 2
+!!!
+
+!!!
+test 'a negative number can be added to a postive number', ->
+  equal -1 + 1, 0
+!!!
