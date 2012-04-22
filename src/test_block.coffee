@@ -7,6 +7,7 @@ catch e
 
 True = "true"
 Empty = ""
+Elipsis = "..."
 
 warnWithLines = (text) ->
   lines = text.split('\n')
@@ -20,7 +21,7 @@ warnWithLines = (text) ->
   true
 
 module.exports = class TestBlock
-  extractFunctionNames: ['ok', 'equal', 'equals', 'deepEqual', 'strictEqual', 'show', 'test', 'asyncTest']
+  extractFunctionNames: ['ok', 'equal', 'equals', 'deepEqual', 'strictEqual', 'show', 'test', 'asyncTest', 'setTimeout', 'delay']
 
   @for: (text, lang, evaluate) ->
     klass = switch lang
@@ -99,15 +100,20 @@ class CoffeeTestBlock extends TestBlock
   equals: @::equal
   deepEqual: @::equal
   strictEqual: @::equal
-
   show: (call) ->
     @statements.push
       in: call.args[0]
       out: Empty
 
+  setTimeout: (call) ->
+    @statements.push
+      in: Empty
+      out: Elipsis
+
+  delay: @::setTimeout
+
   test: (call) ->
     @name = call.args[0].compile(@defaultCoffeeOptions).slice(1, -1)
-
   asyncTest: @::test
 
 class JavaScriptTestBlock extends TestBlock
