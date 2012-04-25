@@ -14,6 +14,7 @@ module.exports = class TestFile
 
   require: (callback) =>
     fs.readFile @filePath, (err, data) =>
+      QUnit.module @filePath
       unless err
         @fileContents = data.toString()
         @tokens = marked.lexer(@fileContents)
