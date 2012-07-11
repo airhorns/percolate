@@ -8,6 +8,16 @@ TestBlock = require './test_block'
 {TableOfContents, TableOfContentsNode} = require './table_of_contents'
 
 module.exports = class TestFile
+  @highlightQueue: do ->
+    queue = async.queue (job, callback) ->
+      pygments.colorize job.text, job.lang, 'html', (text) ->
+        if !text? || text.length < 1
+          console.warn "Job failed!"
+          console.warn job.text
+        job.text = text.slice(0, -1)
+        callback(null, job)
+    , 4
+
   codeBlockTemplate: false
   _required: false
   constructor: (@filePath) ->
@@ -26,8 +36,9 @@ module.exports = class TestFile
   output: (callback) ->
     throw new Error("Must require file first.") unless @_required
     @_highlightTokens (err) =>
-      return callback(err) if err
-      callback(null, @_renderMarkdown())
+      unless err
+        result = @_renderMarkdown()
+      callback(err, result)
 
   _renderMarkdown: ->
     oldOnCode = marked.inline.onCode
@@ -120,8 +131,6 @@ module.exports = class TestFile
       token.escaped = true
 
   _generateHighlightQueue: ->
-    async.queue((job, callback) ->
-      pygments.colorize job.text, job.lang, 'html', (text) ->
-        job.text = text.slice(0, -1)
-        callback(null, job)
-    , 5)
+    async.queue((job, callback) =>
+      @constructor.highlightQueue.push job, callback
+    , 10000)
